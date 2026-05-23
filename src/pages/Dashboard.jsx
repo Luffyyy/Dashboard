@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import SensorChart from "@/components/dashboard/SensorChart";
 import StatsCard from "@/components/dashboard/StatsCard";
 
-import sensorDataRaw from "../sensor_data.csv?raw";
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
@@ -31,10 +30,21 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const { grouped, total } = parseCSV(sensorDataRaw);
-    setSensorData(grouped);
-    setTotalRecords(total);
-    setLoading(false);
+    fetch("/sensor_data.csv")
+      .then((res) => {
+        if (!res.ok) throw new Error("שגיאה בטעינת הנתונים");
+        return res.text();
+      })
+      .then((text) => {
+        const { grouped, total } = parseCSV(text);
+        setSensorData(grouped);
+        setTotalRecords(total);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
   return (
