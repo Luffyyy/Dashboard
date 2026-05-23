@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import SensorChart from "@/components/dashboard/SensorChart";
 import StatsCard from "@/components/dashboard/StatsCard";
 
-const CSV_URL = "https://media.base44.com/files/public/6a119e0323a2cb596c1306c3/b6c1010e5_filtered_sensor_data.csv";
+const CSV_URL = "/sensor_data.csv";
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
