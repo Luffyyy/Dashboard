@@ -90,6 +90,7 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
             <LegendItem colorClass="bg-blue-500" text="Inter. (301-600mm)" />
             <LegendItem colorClass="bg-rose-500" text="High (600mm+)" />
           </div>
+          <p className="text-[10px] text-slate-400 mt-2">Sector radius: 50 mm (±50 mm in X/Y — 100×100 mm area)</p>
         </div>
       </div>
 
