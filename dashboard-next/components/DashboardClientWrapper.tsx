@@ -4,6 +4,9 @@ import { AlertTriangle } from 'lucide-react';
 import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
+import PCABiplot from './PCABiplot';
+import MANOVAResults from './MANOVAResults';
+import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
 
 export interface MQTTMessage {
@@ -74,6 +77,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   }, [latestValidMessage]);
 
   // View States
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova' | 'kriging'>('dashboard');
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
   const [endTimeMinutes, setEndTimeMinutes] = useState<number>(defaultEndMinutesValue);
@@ -225,9 +229,39 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <nav className="bg-white border-b border-slate-100 px-8">
+        <div className="flex gap-1 max-w-7xl mx-auto">
+          {([
+            { id: 'dashboard', label: 'Live Dashboard' },
+            { id: 'pca', label: 'PCA Biplot' },
+            { id: 'manova', label: 'Hypothesis 1 Analysis' },
+            { id: 'kriging', label: 'Hypothesis 2 Analysis' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative text-sm font-semibold px-4 py-3 transition-colors ${
+                activeTab === tab.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-blue-600 rounded-full" />}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       {/* Made gaps tighter using space-y-4 instead of space-y-6 */}
       <main className="p-6 mx-auto space-y-4 max-w-7xl">
-        
+        {activeTab === 'pca' ? (
+          <PCABiplot messages={initialMessages} />
+        ) : activeTab === 'manova' ? (
+          <MANOVAResults messages={initialMessages} />
+        ) : activeTab === 'kriging' ? (
+          <KrigingAnalysis messages={initialMessages} />
+        ) : (
+        <>
         {/* Real-time Metric Banners (Made padding smaller using p-3.5) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {statusCards.map((card) => (
@@ -288,6 +322,8 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
             onSelectMessage={setSelectedMessage}
           />
         </div>
+        </>
+        )}
       </main>
     </div>
   );
