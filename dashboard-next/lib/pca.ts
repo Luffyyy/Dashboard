@@ -1,7 +1,8 @@
-// Principal Component Analysis utilities for the environmental telemetry data.
+// Principal Component Analysis using ml-matrix library
 // We run PCA on the three continuous environmental variables: Temperature, Humidity, Pressure.
-// Data is standardized (z-score) before analysis since the variables use different units/scales,
-// which means the covariance matrix below is effectively the correlation matrix.
+// Data is standardized (z-score) before analysis since the variables use different units/scales.
+
+import { Matrix, EigenvalueDecomposition } from 'ml-matrix';
 
 export interface PCAObservation {
   temperature: number;
@@ -28,7 +29,7 @@ export interface PCALoading {
 export interface PCAResult {
   scores: PCAScore[];
   loadings: PCALoading[];
-  explained: number[]; // fraction of variance per component (3 entries)
+  explained: number[];
   sampleCount: number;
 }
 
@@ -43,145 +44,105 @@ function std(values: number[], m: number): number {
   return Math.sqrt(variance) || 1;
 }
 
-// Jacobi eigenvalue algorithm for a symmetric 3x3 matrix.
-// Returns eigenvalues and eigenvectors (columns) sorted in descending eigenvalue order.
-function jacobiEigen(matrix: number[][]): { values: number[]; vectors: number[][] } {
-  const n = 3;
-  const a = matrix.map((row) => [...row]);
-  // Identity matrix for accumulating eigenvectors
-  const v = [
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1],
-  ];
-
-  for (let iter = 0; iter < 100; iter++) {
-    // Find the largest off-diagonal element
-    let p = 0;
-    let q = 1;
-    let max = Math.abs(a[0][1]);
-    const candidates: Array<[number, number]> = [
-      [0, 1],
-      [0, 2],
-      [1, 2],
-    ];
-    for (const [i, j] of candidates) {
-      if (Math.abs(a[i][j]) >= max) {
-        max = Math.abs(a[i][j]);
-        p = i;
-        q = j;
-      }
-    }
-
-    if (max < 1e-10) break;
-
-    const app = a[p][p];
-    const aqq = a[q][q];
-    const apq = a[p][q];
-    const phi = 0.5 * Math.atan2(2 * apq, aqq - app);
-    const c = Math.cos(phi);
-    const s = Math.sin(phi);
-
-    // Rotate matrix a
-    for (let k = 0; k < n; k++) {
-      const akp = a[k][p];
-      const akq = a[k][q];
-      a[k][p] = c * akp - s * akq;
-      a[k][q] = s * akp + c * akq;
-    }
-    for (let k = 0; k < n; k++) {
-      const apk = a[p][k];
-      const aqk = a[q][k];
-      a[p][k] = c * apk - s * aqk;
-      a[q][k] = s * apk + c * aqk;
-    }
-
-    // Accumulate eigenvectors
-    for (let k = 0; k < n; k++) {
-      const vkp = v[k][p];
-      const vkq = v[k][q];
-      v[k][p] = c * vkp - s * vkq;
-      v[k][q] = s * vkp + c * vkq;
-    }
+/**
+ * Perform PCA on observation data using ml-matrix library with EVD
+ */
+export function computePCA(observations: PCAObservation[]): PCAResult {
+  if (observations.length < 3) {
+    return { scores: [], loadings: [], explained: [], sampleCount: 0 };
   }
 
-  const values = [a[0][0], a[1][1], a[2][2]];
-  const vectors = [
-    [v[0][0], v[1][0], v[2][0]],
-    [v[0][1], v[1][1], v[2][1]],
-    [v[0][2], v[1][2], v[2][2]],
+  // Extract raw data: each row is a sample, each column is a variable
+  const rawData: number[][] = observations.map((obs) => [
+    obs.temperature,
+    obs.humidity,
+    obs.pressure,
+  ]);
+
+  // Standardize the data
+  const means = [
+    mean(rawData.map((row) => row[0])),
+    mean(rawData.map((row) => row[1])),
+    mean(rawData.map((row) => row[2])),
   ];
 
-  // Sort descending by eigenvalue
-  const order = [0, 1, 2].sort((i, j) => values[j] - values[i]);
-  return {
-    values: order.map((i) => values[i]),
-    vectors: order.map((i) => vectors[i]),
-  };
-}
-
-export function computePCA(observations: PCAObservation[]): PCAResult | null {
-  if (observations.length < 3) return null;
-
-  const cols = [
-    observations.map((o) => o.temperature),
-    observations.map((o) => o.humidity),
-    observations.map((o) => o.pressure),
+  const stds = [
+    std(rawData.map((row) => row[0]), means[0]),
+    std(rawData.map((row) => row[1]), means[1]),
+    std(rawData.map((row) => row[2]), means[2]),
   ];
 
-  const means = cols.map((c) => mean(c));
-  const stds = cols.map((c, i) => std(c, means[i]));
+  const standardizedData = rawData.map((row) => [
+    (row[0] - means[0]) / stds[0],
+    (row[1] - means[1]) / stds[1],
+    (row[2] - means[2]) / stds[2],
+  ]);
 
-  // Standardized data matrix (N x 3)
-  const standardized = observations.map((o, idx) => {
-    void idx;
-    return [
-      (o.temperature - means[0]) / stds[0],
-      (o.humidity - means[1]) / stds[1],
-      (o.pressure - means[2]) / stds[2],
-    ];
-  });
+  // Convert to matrix
+  const dataMatrix = new Matrix(standardizedData);
 
-  const n = standardized.length;
-
-  // Covariance (correlation) matrix 3x3
-  const cov = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
+  // Compute covariance matrix: (X^T @ X) / (n-1)
+  const n = dataMatrix.rows;
+  const p = dataMatrix.columns;
+  
+  // Create covariance matrix manually: (X^T @ X) / (n-1)
+  // This is a p x p symmetric matrix
+  const centered = new Matrix(p, p);
+  for (let i = 0; i < p; i++) {
+    for (let j = 0; j < p; j++) {
       let sum = 0;
       for (let k = 0; k < n; k++) {
-        sum += standardized[k][i] * standardized[k][j];
+        sum += dataMatrix.get(k, i) * dataMatrix.get(k, j);
       }
-      cov[i][j] = sum / (n - 1);
+      centered.set(i, j, sum / (n - 1));
     }
   }
 
-  const { values, vectors } = jacobiEigen(cov);
-  const totalVar = values.reduce((a, b) => a + Math.max(b, 0), 0) || 1;
-  const explained = values.map((v) => Math.max(v, 0) / totalVar);
+  // Eigenvalue decomposition of covariance matrix
+  const evd = new EigenvalueDecomposition(centered);
+  const eigenvalues = evd.realEigenvalues;
+  const eigenvectors = evd.eigenvectorMatrix;
 
-  const pc1Vec = vectors[0];
-  const pc2Vec = vectors[1];
+  // Sort by eigenvalue magnitude (descending)
+  const indices = eigenvalues
+    .map((v, i) => ({ value: Math.abs(v), index: i }))
+    .sort((a, b) => b.value - a.value)
+    .map((item) => item.index);
 
-  const scores: PCAScore[] = standardized.map((row, idx) => ({
-    pc1: row[0] * pc1Vec[0] + row[1] * pc1Vec[1] + row[2] * pc1Vec[2],
-    pc2: row[0] * pc2Vec[0] + row[1] * pc2Vec[1] + row[2] * pc2Vec[2],
-    zone: observations[idx].zone,
-    temperature: observations[idx].temperature,
-    humidity: observations[idx].humidity,
-    pressure: observations[idx].pressure,
-  }));
+  // Calculate explained variance
+  const totalVariance = eigenvalues.reduce((sum, v) => sum + Math.abs(v), 0);
+  const explained = indices.map((i) => Math.abs(eigenvalues[i]) / totalVariance);
 
-  // Loadings scaled by sqrt(eigenvalue) so vector length reflects explained variance
-  const loadings: PCALoading[] = VARIABLES.map((variable, i) => ({
-    variable,
-    pc1: pc1Vec[i] * Math.sqrt(Math.max(values[0], 0)),
-    pc2: pc2Vec[i] * Math.sqrt(Math.max(values[1], 0)),
-  }));
+  // PC scores: data * eigenvectors (first two components)
+  const scores: PCAScore[] = [];
+  for (let i = 0; i < dataMatrix.rows; i++) {
+    const pc1 = dataMatrix.getRow(i).reduce((sum, val, j) => sum + val * eigenvectors.get(j, indices[0]), 0);
+    const pc2 = dataMatrix.getRow(i).reduce((sum, val, j) => sum + val * eigenvectors.get(j, indices[1]), 0);
 
-  return { scores, loadings, explained, sampleCount: n };
+    scores.push({
+      pc1,
+      pc2,
+      zone: observations[i].zone,
+      temperature: observations[i].temperature,
+      humidity: observations[i].humidity,
+      pressure: observations[i].pressure,
+    });
+  }
+
+  // Loadings: eigenvectors (correlations between original variables and principal components)
+  const loadings: PCALoading[] = [];
+  for (let i = 0; i < VARIABLES.length; i++) {
+    loadings.push({
+      variable: VARIABLES[i],
+      pc1: eigenvectors.get(i, indices[0]),
+      pc2: eigenvectors.get(i, indices[1]),
+    });
+  }
+
+  return {
+    scores,
+    loadings,
+    explained: explained.slice(0, 3),
+    sampleCount: observations.length,
+  };
 }

@@ -6,6 +6,7 @@ import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
 import PCABiplot from './PCABiplot';
 import MANOVAResults from './MANOVAResults';
+import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
 
 export interface MQTTMessage {
@@ -76,7 +77,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   }, [latestValidMessage]);
 
   // View States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova' | 'kriging'>('dashboard');
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
   const [endTimeMinutes, setEndTimeMinutes] = useState<number>(defaultEndMinutesValue);
@@ -234,7 +235,8 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           {([
             { id: 'dashboard', label: 'Live Dashboard' },
             { id: 'pca', label: 'PCA Biplot' },
-            { id: 'manova', label: 'Statistical Analysis' },
+            { id: 'manova', label: 'Hypothesis 1 Analysis' },
+            { id: 'kriging', label: 'Hypothesis 2 Analysis' },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -256,6 +258,8 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           <PCABiplot messages={initialMessages} />
         ) : activeTab === 'manova' ? (
           <MANOVAResults messages={initialMessages} />
+        ) : activeTab === 'kriging' ? (
+          <KrigingAnalysis messages={initialMessages} />
         ) : (
         <>
         {/* Real-time Metric Banners (Made padding smaller using p-3.5) */}
