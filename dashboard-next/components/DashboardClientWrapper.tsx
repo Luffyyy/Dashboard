@@ -340,7 +340,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans relative">
       {isLoadingDataset && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/55 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 backdrop-blur-sm">
           <div className="w-[min(92vw,32rem)] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
