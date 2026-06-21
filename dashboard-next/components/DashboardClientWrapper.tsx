@@ -5,6 +5,7 @@ import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
 import PCABiplot from './PCABiplot';
+import MANOVAResults from './MANOVAResults';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
 
 export interface MQTTMessage {
@@ -75,7 +76,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   }, [latestValidMessage]);
 
   // View States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova'>('dashboard');
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
   const [endTimeMinutes, setEndTimeMinutes] = useState<number>(defaultEndMinutesValue);
@@ -233,6 +234,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           {([
             { id: 'dashboard', label: 'Live Dashboard' },
             { id: 'pca', label: 'PCA Biplot' },
+            { id: 'manova', label: 'Statistical Analysis' },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -252,6 +254,8 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
       <main className="p-6 mx-auto space-y-4 max-w-7xl">
         {activeTab === 'pca' ? (
           <PCABiplot messages={initialMessages} />
+        ) : activeTab === 'manova' ? (
+          <MANOVAResults messages={initialMessages} />
         ) : (
         <>
         {/* Real-time Metric Banners (Made padding smaller using p-3.5) */}
