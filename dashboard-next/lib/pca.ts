@@ -11,7 +11,7 @@ export interface PCAObservation {
   zone: string;
 }
 
-export interface PCAScore {
+interface PCAScore {
   pc1: number;
   pc2: number;
   zone: string;
@@ -20,7 +20,7 @@ export interface PCAScore {
   pressure: number;
 }
 
-export interface PCALoading {
+interface PCALoading {
   variable: string;
   pc1: number;
   pc2: number;

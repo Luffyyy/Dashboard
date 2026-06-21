@@ -32,7 +32,7 @@ export enum HeightZone {
   HIGH = 'High (600mm+)'
 }
 
-export function getHeightZone(z: number): HeightZone {
+function getHeightZone(z: number): HeightZone {
   if (z <= 300) return HeightZone.LOW;
   if (z <= 600) return HeightZone.INTERMEDIATE;
   return HeightZone.HIGH;
