@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
-import { CheckCircle, AlertCircle, Map as MapIcon, Info, ThermometerSun, Droplets } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, ThermometerSun, Droplets } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
 import { computePCA, type PCAObservation } from '../lib/pca';
 
@@ -10,14 +10,37 @@ interface KrigingAnalysisProps {
   messages: MQTTMessage[];
 }
 
+type KrigingPoint = {
+  x: number;
+  y: number;
+  pc1: number;
+  pc2: number;
+};
+
+type KrigingAnalysisState = {
+  error?: string;
+  spatialStats: {
+    moransPC1: number;
+    moransPC2: number;
+    structurePC1: string;
+    structurePC2: string;
+    observedCount: number;
+    stdPC1: number;
+    stdPC2: number;
+  } | null;
+  predictions: KrigingPoint[];
+  predictionsByDistance: Array<{ distance: string; count: number; avgPC1: number; avgPC2: number }>;
+  observedPoints: KrigingPoint[];
+};
+
 // --- MATHEMATICAL HELPERS ---
 
 function interpolateCartesianIDW(
-  points: { x: number; y: number; pc1: number; pc2: number }[],
+  points: KrigingPoint[],
   gridSize: number = 1200,
   step: number = 50
 ) {
-  const predictions = [];
+  const predictions: KrigingPoint[] = [];
   for (let x = 0; x <= gridSize; x += step) {
     for (let y = 0; y <= gridSize; y += step) {
       let num1 = 0, num2 = 0, den = 0;
@@ -126,11 +149,11 @@ const UnifiedMapLegend = () => (
     
     <div className="flex flex-wrap gap-x-6 gap-y-3 justify-center md:border-l border-slate-300 md:pl-6">
       <div className="flex items-center gap-2">
-        <div className="w-24 h-3 rounded bg-gradient-to-r from-red-500 via-slate-200 to-blue-500 border border-slate-200" />
+        <div className="w-24 h-3 rounded bg-linear-to-r from-red-500 via-slate-200 to-blue-500 border border-slate-200" />
         <span><strong className="text-slate-800">Thermal (PC2):</strong> Red (Hot) &rarr; Gray (Neutral) &rarr; Blue (Cool)</span>
       </div>
       <div className="flex items-center gap-2">
-        <div className="w-24 h-3 rounded bg-gradient-to-r from-amber-500 via-slate-200 to-blue-600 border border-slate-200" />
+        <div className="w-24 h-3 rounded bg-linear-to-r from-amber-500 via-slate-200 to-blue-600 border border-slate-200" />
         <span><strong className="text-slate-800">Density (PC1):</strong> Amber (Dry) &rarr; Gray (Neutral) &rarr; Blue (Humid)</span>
       </div>
       <div className="flex items-center gap-2">
@@ -141,10 +164,22 @@ const UnifiedMapLegend = () => (
   </div>
 );
 
-const InterpolationSurfaceMap = ({ 
-  title, description, predictions, observedPoints, valueKey, isThermal, Icon 
-}: { 
-  title: string, description: string, predictions: any[], observedPoints: any[], valueKey: 'pc1' | 'pc2', isThermal: boolean, Icon: any 
+const InterpolationSurfaceMap = ({
+  title,
+  description,
+  predictions,
+  observedPoints,
+  valueKey,
+  isThermal,
+  Icon,
+}: {
+  title: string;
+  description: string;
+  predictions: KrigingPoint[];
+  observedPoints: KrigingPoint[];
+  valueKey: 'pc1' | 'pc2';
+  isThermal: boolean;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
 }) => {
   const iconColor = isThermal ? "text-indigo-600" : "text-sky-600";
   
@@ -154,7 +189,7 @@ const InterpolationSurfaceMap = ({
         <Icon size={20} className={iconColor} />
         <h3 className="text-lg font-bold text-slate-800">{title}</h3>
       </div>
-      <p className="text-sm text-slate-500 mb-6 flex-grow">{description}</p>
+      <p className="text-sm text-slate-500 mb-6 grow">{description}</p>
       
       <div className="w-full aspect-square bg-slate-50 rounded-xl border border-slate-200 p-4">
         <ResponsiveContainer width="100%" height="100%">
@@ -162,11 +197,11 @@ const InterpolationSurfaceMap = ({
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis type="number" dataKey="x" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#64748b" label={{ value: 'Room X (mm)', position: 'insideBottom', offset: -10, fill: '#475569', fontWeight: 600, fontSize: 11 }} />
             <YAxis type="number" dataKey="y" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#64748b" label={{ value: 'Room Y (mm)', angle: -90, position: 'insideLeft', fill: '#475569', fontWeight: 600, fontSize: 11 }} />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} formatter={(value: any) => typeof value === 'number' ? value.toFixed(3) : value} labelFormatter={() => ''} />
+            <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} formatter={(value: unknown) => typeof value === 'number' ? value.toFixed(3) : String(value)} labelFormatter={() => ''} />
             
             <Scatter name="Interpolated Surface" data={predictions}>
               {predictions.map((point, idx) => (
-                <Cell key={`pred-${idx}`} fill={getHeatmapColor(point[valueKey], isThermal)} fillOpacity={0.8.toFixed(1)} />
+                <Cell key={`pred-${idx}`} fill={getHeatmapColor(point[valueKey], isThermal)} fillOpacity={0.8} />
               ))}
             </Scatter>
             
@@ -185,8 +220,8 @@ const InterpolationSurfaceMap = ({
 // --- MAIN DASHBOARD COMPONENT ---
 
 export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
-  const analysis = useMemo(() => {
-    if (!messages.length) return { error: 'No data available', spatialStats: null, predictions: [] };
+  const analysis = useMemo<KrigingAnalysisState>(() => {
+    if (!messages.length) return { error: 'No data available', spatialStats: null, predictions: [], predictionsByDistance: [], observedPoints: [] };
 
     const groups = new Map<string, { t: number[]; h: number[]; p: number[]; x: number; y: number; z: number }>();
     messages.forEach((msg) => {
@@ -211,10 +246,14 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
       }
     }
 
-    if (observations.length < 3) return { error: 'Insufficient spatial data combinations to map surface.', spatialStats: null, predictions: [] };
+    if (observations.length < 3) {
+      return { error: 'Insufficient spatial data combinations to map surface.', spatialStats: null, predictions: [], predictionsByDistance: [], observedPoints: [] };
+    }
 
     const pca = computePCA(observations);
-    if (!pca) return { error: 'PCA computation failed.', spatialStats: null, predictions: [] };
+    if (!pca) {
+      return { error: 'PCA computation failed.', spatialStats: null, predictions: [], predictionsByDistance: [], observedPoints: [] };
+    }
 
     const uniqueSpatialMap = new Map<string, { x: number; y: number; sumPC1: number; sumPC2: number; count: number }>();
     pca.scores.forEach((score, idx) => {
@@ -227,7 +266,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
       entry.count += 1;
     });
 
-    const observedPoints = Array.from(uniqueSpatialMap.values()).map(p => ({ x: p.x, y: p.y, pc1: p.sumPC1 / p.count, pc2: p.sumPC2 / p.count }));
+    const observedPoints: KrigingPoint[] = Array.from(uniqueSpatialMap.values()).map(p => ({ x: p.x, y: p.y, pc1: p.sumPC1 / p.count, pc2: p.sumPC2 / p.count }));
     const interpolatedGrid = interpolateCartesianIDW(observedPoints, 1200, 50);
 
     const moransPC1 = calculateMoransI(observedPoints.map(p => ({ x: p.x, y: p.y, value: p.pc1 })));
@@ -281,7 +320,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
           There is distinct spatial heterogeneity in the climate components across the room, which is explained by horizontal distance from disturbance sources and not by vertical height (Z).
         </p>
         <div className="mt-4 bg-white/60 p-3 rounded-lg text-xs font-mono text-blue-900 space-y-1">
-          <p><strong>H₀ (Null):</strong> Climate components vary randomly. Moran's I &asymp; 0.</p>
+          <p><strong>H₀ (Null):</strong> Climate components vary randomly. Moran&apos;s I &asymp; 0.</p>
           <p><strong>H₁ (Alternative):</strong> Climate components form spatial clusters based on horizontal (X,Y) geographic position.</p>
         </div>
       </div>
@@ -291,7 +330,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
         <div className="flex items-start gap-4">
           {isSpatiallyDependent ? <div className="p-2 bg-emerald-50 rounded-full"><CheckCircle className="text-emerald-600" size={24} /></div> : <div className="p-2 bg-amber-50 rounded-full"><AlertCircle className="text-amber-500" size={24} /></div>}
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-slate-800">Spatial Autocorrelation (Moran's I)</h3>
+            <h3 className="text-lg font-bold text-slate-800">Spatial Autocorrelation (Moran&apos;s I)</h3>
             <p className="text-sm text-slate-600 mt-1 leading-relaxed">
               {isSpatiallyDependent ? `Significant localized structure detected. The evaluation confirms clustering, meaning micro-climates are geographically distinct and depend on X/Y horizontal proximity.` : `Weak spatial structure detected. The micro-climate variance is highly dispersed across the horizontal plane.`}
             </p>
@@ -332,7 +371,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
       {analysis.predictionsByDistance && analysis.predictionsByDistance.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-2">Micro-Climate Variance by Radial Distance from Center</h3>
-          <p className="text-sm text-slate-500 mb-6">Displays how the Density (PC1) and Thermal (PC2) profiles shift radially outward from the room's centroid (X:600, Y:600).</p>
+          <p className="text-sm text-slate-500 mb-6">Displays how the Density (PC1) and Thermal (PC2) profiles shift radially outward from the room&apos;s centroid (X:600, Y:600).</p>
           <div className="w-full h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analysis.predictionsByDistance} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>

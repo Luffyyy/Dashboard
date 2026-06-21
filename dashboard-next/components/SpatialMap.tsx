@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { HeightZone, type MQTTMessage } from './DashboardClientWrapper';
 
@@ -40,7 +40,12 @@ type ScatterPoint = Partial<BinnedNode> & {
 };
 
 export default function SpatialMap({ binnedData, selectedMessage, latestMessage, activeFilter, onFilterChange, onSelectMessage }: SpatialMapProps) {
+  const [isMounted, setIsMounted] = useState(false);
   
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Memoize targets to avoid running division loops for every single cell mapping execution frame
   const boundaryTargets = useMemo(() => ({
     selected: {
@@ -96,8 +101,13 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
 
       {/* Grid Scatter Canvas Space */}
       <div className="bg-slate-50 rounded-xl border border-slate-100 p-3 flex-1 relative h-77.5">
-        <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 15, right: 15, bottom: 5, left: -20 }}>
+        {!isMounted ? (
+          <div className="h-full min-h-77.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+            Loading map...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 15, right: 15, bottom: 5, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             
             <XAxis type="number" dataKey="x" name="X Coord" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#94a3b8" label={{ value: 'X Axis (mm)', position: 'insideBottom', offset: -5, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
@@ -145,8 +155,9 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
                 );
               })}
             </Scatter>
-          </ScatterChart>
-        </ResponsiveContainer>
+            </ScatterChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

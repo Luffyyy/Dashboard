@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceDot } from 'recharts';
 import { Activity, Droplets, Gauge, MapPin } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
@@ -32,7 +32,12 @@ const StatBadge = ({ icon, label, value, border }: { icon: React.ReactNode, labe
 );
 
 export default function MetricChart({ temperatureData, humidityData, pressureData, selectedMessage }: MetricChartProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [chartScope, setChartScope] = useState<'all' | 'local'>('local');
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // 2. Memoize bounding geometry properties
   const selectedSectorCenter = useMemo(() => {
@@ -154,8 +159,13 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
 
       {/* Visual Chart Frame Layout */}
       <div className="w-full flex-1 h-77.5 mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={unifiedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+        {!isMounted ? (
+          <div className="h-full min-h-77.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+            Loading chart...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={unifiedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
             <defs>
               {[['tempGradient', '#f59e0b'], ['humidityGradient', '#0ea5e9'], ['pressureGradient', '#8b5cf6']].map(([id, color]) => (
                 <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
@@ -179,8 +189,9 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
             {selectedPoint?.Temperature !== undefined && (
               <ReferenceDot yAxisId="left" x={selectedPoint.time} y={selectedPoint.Temperature} r={5} fill="#d97706" stroke="#ffffff" strokeWidth={2} />
             )}
-          </AreaChart>
-        </ResponsiveContainer>
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

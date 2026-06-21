@@ -66,10 +66,18 @@ export function computeMANOVA(
     })
   );
 
+  const meanVector = (rows: number[][]): number[] => {
+    if (!rows.length) return new Array(p).fill(0);
+    return Array.from({ length: p }, (_, columnIndex) => {
+      const total = rows.reduce((sum, row) => sum + (row[columnIndex] ?? 0), 0);
+      return total / rows.length;
+    });
+  };
+
   // Grand Mean and Group Means
-  const grandMean = math.mean(observations.map((o) => [o.pc1, o.pc2]), 0) as number[];
+  const grandMean = meanVector(observations.map((o) => [o.pc1, o.pc2]));
   const groupMeans: Record<string, number[]> = Object.fromEntries(
-    zones.map((z) => [z, math.mean(grouped[z], 0) as number[]])
+    zones.map((z) => [z, meanVector(grouped[z])])
   );
 
   // Initialize SSCP Matrices (p x p)
@@ -145,7 +153,7 @@ export function computeMANOVA(
       const lambdaPower = Math.pow(wilksLambda, 1 / t);
       if (lambdaPower > 0 && lambdaPower < 1) {
         fStatistic = ((1 - lambdaPower) / lambdaPower) * (df2 / df1);
-        pValue = 1 - jStat.centralF.cdf(Math.max(0, fStatistic), df1, df2);
+        pValue = 1 - (jStat as unknown as { centralF: { cdf: (value: number, df1: number, df2: number) => number } }).centralF.cdf(Math.max(0, fStatistic), df1, df2);
       }
     }
   } else if (wilksLambda === 1) {
