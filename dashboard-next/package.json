@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sakitam-gis/kriging": "^0.1.0",
     "@stdlib/stats": "^0.4.1",
+    "@turf/helpers": "^7.3.5",
+    "@turf/interpolate": "^7.3.5",
+    "@turf/moran-index": "^7.3.5",
     "autoprefixer": "^10.5.0",
     "dayjs": "^1.11.21",
     "jstat": "^1.9.6",

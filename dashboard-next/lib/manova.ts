@@ -1,5 +1,5 @@
 import * as math from 'mathjs';
-import { jstat } from 'jstat';
+import jStat from 'jstat';
 
 export interface MANOVAResult {
   groups: string[];
@@ -19,14 +19,11 @@ export function computeMANOVA(
   observations: Array<{
     pc1: number;
     pc2: number;
-    temperature: number;
-    humidity: number;
-    pressure: number;
     zone: string;
   }>,
   alpha: number = 0.05
 ): MANOVAResult {
-  const variables = ['pc1', 'pc2', 'temperature', 'humidity', 'pressure'] as const;
+  const variables = ['pc1', 'pc2'] as const;
   const zones = Array.from(new Set(observations.map((o) => o.zone)));
   const k = zones.length;
   const p = variables.length;
@@ -63,14 +60,14 @@ export function computeMANOVA(
   // Group data matrices
   const grouped: Record<string, number[][]> = Object.fromEntries(
     zones.map((z) => {
-      const data = observations.filter((o) => o.zone === z).map((o) => [o.pc1, o.pc2, o.temperature, o.humidity, o.pressure]);
+      const data = observations.filter((o) => o.zone === z).map((o) => [o.pc1, o.pc2]);
       groupSizes[z] = data.length;
       return [z, data];
     })
   );
 
   // Grand Mean and Group Means
-  const grandMean = math.mean(observations.map((o) => [o.pc1, o.pc2, o.temperature, o.humidity, o.pressure]), 0) as number[];
+  const grandMean = math.mean(observations.map((o) => [o.pc1, o.pc2]), 0) as number[];
   const groupMeans: Record<string, number[]> = Object.fromEntries(
     zones.map((z) => [z, math.mean(grouped[z], 0) as number[]])
   );
@@ -125,7 +122,7 @@ export function computeMANOVA(
     const pillaiMatrix = math.multiply(B, invTotal);
     pillaiTrace = math.trace(pillaiMatrix) as number;
     pillaiTrace = Math.max(0, Math.min(p, pillaiTrace)); // bound by number of dependent variables
-  } catch (e) {
+  } catch {
     // Fallback if matrix inversion fails
     pillaiTrace = 1 - wilksLambda;
   }
@@ -148,7 +145,7 @@ export function computeMANOVA(
       const lambdaPower = Math.pow(wilksLambda, 1 / t);
       if (lambdaPower > 0 && lambdaPower < 1) {
         fStatistic = ((1 - lambdaPower) / lambdaPower) * (df2 / df1);
-        pValue = 1 - jstat.centralF.cdf(Math.max(0, fStatistic), df1, df2);
+        pValue = 1 - jStat.centralF.cdf(Math.max(0, fStatistic), df1, df2);
       }
     }
   } else if (wilksLambda === 1) {
