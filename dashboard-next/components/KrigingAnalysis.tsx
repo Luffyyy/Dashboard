@@ -12,14 +12,14 @@ interface KrigingAnalysisProps {
 
 /**
  * Simple kriging implementation using inverse distance weighting (IDW)
- * for estimating PC2 values at unmeasured locations
- * @param observedPoints Array of {x, y, pc2} observed points
+ * for estimating PC1 values at unmeasured locations
+ * @param observedPoints Array of {x, y, pc1} observed points
  * @param predictionPoints Array of {x, y} locations where we want to predict
  */
-function krigePC2(
-  observedPoints: Array<{ x: number; y: number; pc2: number }>,
+function krigePC1(
+  observedPoints: Array<{ x: number; y: number; pc1: number }>,
   predictionPoints: Array<{ x: number; y: number }>
-): Array<{ x: number; y: number; pc2_predicted: number }> {
+): Array<{ x: number; y: number; pc1_predicted: number }> {
   const power = 2; // IDW power parameter
   const maxDistance = 300; // Consider only points within this distance
 
@@ -32,18 +32,18 @@ function krigePC2(
 
       if (distance < 0.1) {
         // Very close, return observed value
-        return { x: pred.x, y: pred.y, pc2_predicted: obs.pc2 };
+        return { x: pred.x, y: pred.y, pc1_predicted: obs.pc1 };
       }
 
       if (distance <= maxDistance) {
         const weight = 1 / (distance ** power);
-        numerator += weight * obs.pc2;
+        numerator += weight * obs.pc1;
         denominator += weight;
       }
     }
 
-    const pc2_predicted = denominator > 0 ? numerator / denominator : 0;
-    return { x: pred.x, y: pred.y, pc2_predicted };
+    const pc1_predicted = denominator > 0 ? numerator / denominator : 0;
+    return { x: pred.x, y: pred.y, pc1_predicted };
   });
 }
 
@@ -139,14 +139,14 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
       return { error: 'Insufficient data for kriging analysis', spatialStats: null, predictions: [] };
     }
 
-    // Compute PCA to get PC2 scores
+    // Compute PCA to get PC1 scores
     const pca = computePCA(observations);
 
-    // Prepare kriging input: observed PC2 values with spatial coordinates
+    // Prepare kriging input: observed PC1 values with spatial coordinates
     const observedPoints = pca.scores.map((score, idx) => ({
       x: spatialPoints[idx]?.x || 0,
       y: spatialPoints[idx]?.y || 0,
-      pc2: score.pc2,
+      pc1: score.pc1,
     }));
 
     // Generate prediction grid
@@ -159,16 +159,16 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
     }
 
     // Perform kriging predictions
-    const krigedValues = krigePC2(observedPoints, predictionPoints);
+    const krigedValues = krigePC1(observedPoints, predictionPoints);
 
     // Calculate spatial statistics
-    const moransPoints = observedPoints.map((p) => ({ x: p.x, y: p.y, value: p.pc2 }));
+    const moransPoints = observedPoints.map((p) => ({ x: p.x, y: p.y, value: p.pc1 }));
     const morans = moransI(moransPoints);
-    const avgPC2 = observedPoints.reduce((sum, p) => sum + p.pc2, 0) / observedPoints.length;
-    const stdPC2 = Math.sqrt(observedPoints.reduce((sum, p) => sum + (p.pc2 - avgPC2) ** 2, 0) / observedPoints.length);
+    const avgPC1 = observedPoints.reduce((sum, p) => sum + p.pc1, 0) / observedPoints.length;
+    const stdPC1 = Math.sqrt(observedPoints.reduce((sum, p) => sum + (p.pc1 - avgPC1) ** 2, 0) / observedPoints.length);
 
     // Group predictions by zones
-    const predictionsByDistance: Array<{ distance: string; count: number; avgPC2: number }> = [];
+    const predictionsByDistance: Array<{ distance: string; count: number; avgPC1: number }> = [];
     for (let i = 0; i <= 300; i += 50) {
       const zoneCenter = { x: 300, y: 300 };
       const inZone = krigedValues.filter((p) => {
@@ -179,7 +179,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
         predictionsByDistance.push({
           distance: `${i}-${i + 50}mm`,
           count: inZone.length,
-          avgPC2: inZone.reduce((sum, p) => sum + p.pc2_predicted, 0) / inZone.length,
+          avgPC1: inZone.reduce((sum, p) => sum + p.pc1_predicted, 0) / inZone.length,
         });
       }
     }
@@ -190,8 +190,8 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
         moransI: morans,
         spatialAutocorrelation: morans > 0.3 ? 'Strong' : morans > 0 ? 'Moderate' : 'Weak',
         observedCount: observedPoints.length,
-        avgPC2,
-        stdPC2,
+        avgPC1,
+        stdPC1,
       },
       predictions: krigedValues,
       predictionsByDistance,
@@ -214,12 +214,13 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
     <div className="space-y-6">
       {/* Hypothesis Statement */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h2 className="text-lg font-bold text-blue-900">Hypothesis 2: Localized Micro-Climates</h2>
+        <h2 className="text-lg font-bold text-blue-900">Hypothesis 2: Spatial Horizontal Micro-Climate Pattern (Localized Micro-Climates)</h2>
         <p className="text-sm text-blue-800 mt-2">
-          H₀: PC2 shows no spatial autocorrelation; variation is random and not dependent on horizontal location.
+          There is distinct spatial heterogeneity in the second climate component (PC1) across the room, which is explained by horizontal distance from disturbance sources and not by vertical height (Z).
         </p>
         <p className="text-sm text-blue-800 mt-1">
-          H₁: PC2 exhibits spatial autocorrelation (positive or negative); environmental heterogeneity follows horizontal distance from disturbance sources, independent of Z (height).
+          <strong>H₀ (Null):</strong> PC1 shows no spatial autocorrelation; variation is random across horizontal coordinates.<br />
+          <strong>H₁ (Alternative):</strong> PC1 exhibits spatial autocorrelation; environmental heterogeneity follows horizontal location patterns independent of vertical height.
         </p>
       </div>
 
@@ -237,8 +238,8 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
             </h3>
             <p className="text-sm text-slate-600 mt-1">
               {isSpatiallyDependent
-                ? `Significant spatial structure detected (Moran's I = ${stats.moransI.toFixed(3)}). PC2 values show ${stats.spatialAutocorrelation.toLowerCase()} spatial correlation, suggesting environmental heterogeneity follows horizontal patterns.`
-                : `Limited spatial autocorrelation detected (Moran's I = ${stats.moransI.toFixed(3)}). PC2 variation appears largely random across horizontal coordinates.`}
+                ? `Significant spatial structure detected (Moran's I = ${stats.moransI.toFixed(3)}). PC1 values show ${stats.spatialAutocorrelation.toLowerCase()} spatial correlation, indicating environmental heterogeneity follows horizontal location patterns independent of height.`
+                : `Limited spatial autocorrelation detected (Moran's I = ${stats.moransI.toFixed(3)}). PC1 variation appears largely random across horizontal coordinates.`}
             </p>
           </div>
         </div>
@@ -246,20 +247,24 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
         {/* Spatial Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">Moran's I</p>
+            <p className="text-xs text-slate-600 font-medium">Moran's I (Test Statistic)</p>
             <p className="text-lg font-semibold text-slate-900">{stats.moransI.toFixed(3)}</p>
+            <p className="text-xs text-slate-500 mt-1">Range: -1 to 1 (positive = clustered)</p>
           </div>
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">Autocorr Type</p>
+            <p className="text-xs text-slate-600 font-medium">Spatial Correlation</p>
             <p className="text-lg font-semibold text-slate-900">{stats.spatialAutocorrelation}</p>
+            <p className="text-xs text-slate-500 mt-1">Strength of autocorrelation</p>
           </div>
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">Observed Points</p>
+            <p className="text-xs text-slate-600 font-medium">Sample Locations</p>
             <p className="text-lg font-semibold text-slate-900">{stats.observedCount}</p>
+            <p className="text-xs text-slate-500 mt-1">Measurement points</p>
           </div>
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">PC2 Std Dev</p>
-            <p className="text-lg font-semibold text-slate-900">{stats.stdPC2.toFixed(3)}</p>
+            <p className="text-xs text-slate-600 font-medium">PC1 Std Dev</p>
+            <p className="text-lg font-semibold text-slate-900">{stats.stdPC1.toFixed(3)}</p>
+            <p className="text-xs text-slate-500 mt-1">Variability magnitude</p>
           </div>
         </div>
       </div>
@@ -267,10 +272,11 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
       {/* Kriging Predictions Visualization */}
       {analysis.predictions && analysis.predictions.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-100 p-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <MapIcon size={20} className="text-slate-700" />
-            <h3 className="text-lg font-bold text-slate-900">Kriged PC2 Surface (Inverse Distance Weighting)</h3>
+            <h3 className="text-lg font-bold text-slate-900">Kriged PC1 Spatial Surface (Inverse Distance Weighting)</h3>
           </div>
+          <p className="text-sm text-slate-600 mb-4">Predicted PC1 values across room coordinates. Color gradient: Blue (low) to Red (high). Black diamonds show observed measurement locations. This map visualizes horizontal micro-climate patterns.</p>
           
           <ResponsiveContainer width="100%" height={400}>
             <ScatterChart
@@ -284,6 +290,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
                 name="X (mm)"
                 domain={[0, 600]}
                 stroke="#64748b"
+                label={{ value: 'X Coordinate (mm)', position: 'bottom', offset: 10 }}
               />
               <YAxis
                 type="number"
@@ -291,16 +298,18 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
                 name="Y (mm)"
                 domain={[0, 600]}
                 stroke="#64748b"
+                label={{ value: 'Y Coordinate (mm)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip
                 cursor={{ strokeDasharray: '3 3' }}
                 contentStyle={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}
-                formatter={(value: any) => value.toFixed(3)}
+                formatter={(value: any) => typeof value === 'number' ? value.toFixed(3) : value}
+                labelFormatter={(label) => `Location: ${label}`}
               />
-              <Scatter name="Kriged PC2" data={analysis.predictions} fill="#3b82f6">
+              <Scatter name="Kriged PC1 Prediction" data={analysis.predictions} fill="#3b82f6">
                 {analysis.predictions.map((point: any, idx: number) => {
-                  const normalizedPC2 = (point.pc2_predicted + 3) / 6; // Scale to 0-1
-                  const hue = normalizedPC2 * 240; // Blue (240) to Red (0)
+                  const normalizedPC1 = (point.pc1_predicted + 3) / 6; // Scale to 0-1
+                  const hue = normalizedPC1 * 240; // Blue (240) to Red (0)
                   const color = `hsl(${hue}, 70%, 50%)`;
                   return <Cell key={idx} fill={color} fillOpacity={0.7} />;
                 })}
@@ -309,7 +318,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
               {/* Overlay observed points */}
               {analysis.observedPoints && (
                 <Scatter
-                  name="Observed PC2"
+                  name="Observed PC1 Samples"
                   data={analysis.observedPoints}
                   fill="#000"
                   shape="diamond"
@@ -328,20 +337,22 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
         </div>
       )}
 
-      {/* Distance-based PC2 Distribution */}
+      {/* Distance-based PC1 Distribution */}
       {analysis.predictionsByDistance && analysis.predictionsByDistance.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-100 p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">
-            PC2 Variation by Horizontal Distance from Room Center
-          </h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">PC1 Variation by Horizontal Distance from Room Center</h3>
+          <p className="text-sm text-slate-600 mb-4">Shows how predicted PC1 values change as you move away from the room center. Non-uniform patterns indicate horizontal micro-climate zones.</p>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analysis.predictionsByDistance}>
+            <BarChart data={analysis.predictionsByDistance} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="distance" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip contentStyle={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }} />
-              <Legend />
-              <Bar dataKey="avgPC2" fill="#06b6d4" name="Mean Kriged PC2" />
+              <XAxis dataKey="distance" stroke="#64748b" angle={-45} textAnchor="end" height={80} />
+              <YAxis stroke="#64748b" label={{ value: 'Mean PC1 Value', angle: -90, position: 'insideLeft' }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}
+                formatter={(value) => typeof value === 'number' ? value.toFixed(3) : value}
+              />
+              <Legend wrapperStyle={{ paddingTop: '20px' }} />
+              <Bar dataKey="avgPC1" fill="#06b6d4" name="Mean Kriged PC1 by Distance" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -349,11 +360,11 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
 
       {/* Interpretation */}
       <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-        <h3 className="font-bold text-slate-900 mb-2">Interpretation</h3>
+        <h3 className="font-bold text-slate-900 mb-2">Conclusion: Hypothesis 2 Analysis</h3>
         <p className="text-sm text-slate-700 leading-relaxed">
           {isSpatiallyDependent
-            ? `The kriging analysis reveals ${stats.spatialAutocorrelation.toLowerCase()} spatial structure in PC2 (Moran's I = ${stats.moransI.toFixed(3)}), indicating that environmental heterogeneity is not random but follows horizontal location patterns. This supports Hypothesis 2: micro-climate variations depend on distance from disturbance sources and are independent of height (Z). The kriged surface shows how PC2 varies smoothly across the room, suggesting localized environmental zones driven by horizontal positioning.`
-            : `The kriging analysis shows weak spatial autocorrelation (Moran's I = ${stats.moransI.toFixed(3)}), suggesting that PC2 variations are largely uncorrelated with horizontal location. This does not strongly support Hypothesis 2; environmental patterns may be driven more by vertical stratification or random factors than by horizontal distance from disturbance sources.`}
+            ? `The kriging analysis reveals ${stats.spatialAutocorrelation.toLowerCase()} spatial structure in PC1 (Moran's I = ${stats.moransI.toFixed(3)}), indicating that environmental heterogeneity follows horizontal location patterns rather than occurring randomly. This supports Hypothesis 2: micro-climate variations depend on horizontal distance from disturbance sources and are independent of vertical height (Z). The kriged spatial surface demonstrates distinct environmental zones driven by horizontal positioning within the room.`
+            : `The kriging analysis shows weak spatial autocorrelation (Moran's I = ${stats.moransI.toFixed(3)}), suggesting that PC1 variations are largely uncorrelated with horizontal location. This does not strongly support Hypothesis 2; environmental patterns may be driven more by vertical stratification or other factors than by horizontal distance from disturbance sources.`}
         </p>
       </div>
     </div>

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@stdlib/stats':
+        specifier: ^0.4.1
+        version: 0.4.1
       autoprefixer:
         specifier: ^10.5.0
         version: 10.5.0(postcss@8.5.15)
@@ -20,6 +23,9 @@ importers:
       lucide-react:
         specifier: ^1.17.0
         version: 1.21.0(react@19.2.4)
+      ml-matrix:
+        specifier: ^6.12.2
+        version: 6.12.2
       next:
         specifier: 16.2.7
         version: 16.2.7(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -475,6 +481,181 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@stdlib/array@0.5.1':
+    resolution: {integrity: sha512-Cl/V1gSgZ0qJWwtm/h+v8seYJL2z6zv9tGSXDd71vHfUXGKk8Oatby7ApWzIr87zxAkeHm/6RZjzVnBisrgoHw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/assert@0.4.1':
+    resolution: {integrity: sha512-Z/3UYJGIo3RAuiq18wPx34jnZaZSWifczeJcEM4rAk5+/9VLYYwz+KskjgbhEIi/MWgrESNICB+QHLoEbdrKnw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/bigint@0.4.1':
+    resolution: {integrity: sha512-QQaS7NPYmeWAbQzabtC3G2CZ13JLrouAZgE9HYZgJh6a2glnxTbyxh1vLgWwxJhE5+V/kLeuqkzPgIQXKbddgg==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/blas@0.4.1':
+    resolution: {integrity: sha512-nXBCNWZroljIEeHAsgK8YfTuuorMnWz9+SWyUaA17iwU3ULeri6KV/lGr/IfLQNjWAczDdbR+cF4o21xDBXP9w==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/boolean@0.4.1':
+    resolution: {integrity: sha512-ayYR1MqG5yR1vdRlPnXpJNDDCCNYo791ffpKhxi7MKnvLeUb/2Va6/HEFpt/I7mIuhFcfHWz4I+qwMpyQFzS+A==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/buffer@0.4.1':
+    resolution: {integrity: sha512-yIHxWBgaSlE0cUmmd5rMTe6MaVmElgjbEwYMk4dfV3wbQoXSVOr6rpWUieJE09QPia3i2kQfPH6LgEbm0bIjhQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/cli@0.4.1':
+    resolution: {integrity: sha512-0J+4RJTeMzi/pJ8rOgpxCwW03yj2Yt1laqBHfp3GBHnCTV5Ls11cBP05oJ4JeGNzXbo/tF/m/6jwg5ohkb9djw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/complex@0.4.1':
+    resolution: {integrity: sha512-KjxCE2vc8poStD++O6jx+/td9tP9ac/L6ud37iqL4ixflXR4PZiL6pHzuyn8r7AIiCsSJ+7/j/dVZGfImR+8Eg==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/constants@0.4.1':
+    resolution: {integrity: sha512-bx+LXEOQ0G237xK06ZjsNyHmoneDUlPFzvdEodTCFkQD0+X5Hivol9+sXlr0dt8mBjdjrNM3VvdaXvDRcn9sdg==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/dstructs@0.1.1':
+    resolution: {integrity: sha512-7L+atqyO7lBFsTzk2t9oOCV2o+EkuyJLEIzWEnqW5y1UdeW3we2piKoKxBp4a4o3V7hojsqppI7YwvbcvOWDZQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/fs@0.4.1':
+    resolution: {integrity: sha512-W8bSbh8dSry1Vs2JbToYiyoYnSj3sWsFg1jsBHEus0qRWG4D05gGyr3O4i8Erl+pnRNlaKXUlg/UHDbwPR6nMA==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/function@0.4.1':
+    resolution: {integrity: sha512-gTMjK1Q6psdF7gmjNibE/L/QC6qyUkMOpW/SJubj/KBZuyAJoczBSezL77PBBoPoYBEqLTSVCAXxcRu3VcxtkQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/iter@0.4.1':
+    resolution: {integrity: sha512-ogdGN3r4vQcZDXkdkR2OdVo12FXGPW7SBbU0F9J4EkxjM2T95TaqvlPcGcmv8l4oabWWJEqZtljOkdodzwKwgw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/lapack@0.2.1':
+    resolution: {integrity: sha512-Oj2T7LG24lZOGg3RoaYzztXpdj2Ce2b+h+Bmp14RjySKesIv17KjeMAdIEsXvBuSd3pRPRc7zIh/op3U3aRpFw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/math@0.4.1':
+    resolution: {integrity: sha512-SjO3cCy9rlWaDGx2hSxQo4YbPp7N7xuRyyBI2pts0lcPUpfp9ttLxPHwepGDCr2uvK6J62oibweh6WdSTK/pug==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/napi@0.4.1':
+    resolution: {integrity: sha512-S2w3XIbibb1ZaMpXDlBqI00PxmzoVnYrDRLngomlOHjicGRuTBjartPe86gj0d6hz5XUfTAoUE1teffrYX4qlA==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/ndarray@0.4.1':
+    resolution: {integrity: sha512-ApMlmzOuOwLlOayT92nNlw5LUh97pmROjx306y08l7o8lQBfbwuip7ANtkHia+6C4BdnioApL1k2JB/vawsclA==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/nlp@0.4.1':
+    resolution: {integrity: sha512-UMxgUwiIL90CT0FMrLoWGsepaT+LP9meGeR5/TaIBZg5tN4BZIt18yHX768hUsa9ElwyG90zVHn7rVVeSAPDBQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/number@0.4.1':
+    resolution: {integrity: sha512-KcZAu3w4I/96mEl42UnVNX7eTcgcFCcII8CmD4vcttqp0/0dDLXmRYkcXBpjXEBbvkG+90ecFVZnWQp6SxEy8w==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/object@0.4.1':
+    resolution: {integrity: sha512-GDq8Cnh8x5RcJMrKANIBDQgM9rvR+oc+d7kAnPVVbswfk63CpmwQ35qP9czgX4oQHFE81z5QzTMrEUxbEP842g==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/os@0.4.1':
+    resolution: {integrity: sha512-/AfExpW8cy58gLc/nOoKe9gICcQJHkrOPo0yjvT+dNxQpdBQ+ftHer2zvDEIXfrQMse/HWfsu7MStWvdaJI47g==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/process@0.4.1':
+    resolution: {integrity: sha512-51on3TqppnlB9BORIOqam1qt1wP3agXzJblgKdTwTyMbXIj8++E1eGsSfCUEHb2HQ1HUV+5ZiDwWbokjyspM2A==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/proxy@0.4.1':
+    resolution: {integrity: sha512-omXl2HPlcmLzN4OXjsPSfHHykHMJ4dOMZAGtqg/iU1flp1+SCqC/ADJ2QjNqtR/vy22TfGuuz+QRnnmQVFbxZQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/random@0.4.1':
+    resolution: {integrity: sha512-PIZdyB21mlpf1lXwhaURKtDAnBySGGUbZlP+CwmSJctB0EBXoyHCxzohzugcrfbVrvLsz5xCkUKAoLPaufPesQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/regexp@0.4.1':
+    resolution: {integrity: sha512-YtjHWaqv8b8secEb7cXNIcP6DZ2/OHq/UxrUH3+9RMB9fgtM7duxo0eTNDaZP9KgBYs001B1HAB4uUSB8tGnYw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/slice@0.4.1':
+    resolution: {integrity: sha512-B3DmONJLXR3Kawna+swbEvD72+JFc/pGyRjqvWE/V/tUDnUmrLs55SKvd/MfP40rJ3mwIBZMPGad4Nx4WTnlVg==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/stats@0.4.1':
+    resolution: {integrity: sha512-h295QQcyR6YV1fA7NSvvZDgDVZ43ytW3iCdLIIF5kHsI5ZhEIa+Yket4fkmUbdY1osW/MKFH1Epk1zr9T9Y6eA==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/streams@0.4.1':
+    resolution: {integrity: sha512-TUSAp4q2tYy8t9HEe6SZkuxrLXy1HwfZgatlnji+DsGWcBzbaISXY3Pn9+AhN6ees8kwMwAF5ymEXveSi7Yd5Q==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/strided@0.4.1':
+    resolution: {integrity: sha512-k1djbNsZxUIt+d1V77AY6w5hgndcuUVV7lW4VtSPhZYhseWzQY0LFUd0ge52buAps/o19ZwcObEB/9GSRyRGUw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/string@0.4.1':
+    resolution: {integrity: sha512-hhNggOPuouD3WKzjMpjEsgAmvNCTT2uKmmVPwFqx1yaLCwJ3+WIExrW28MkGuaLLuPwAdgfHAXpLkXZlw9uxbQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/symbol@0.4.1':
+    resolution: {integrity: sha512-eqw4DJg9f74Ya64EIcr6YwTp8Td/SkoWVt5rSI5+/JHKLbW+q/Sb/Lxe7i0M24h1beDYsy+uWA4DHZY1V2eivw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/time@0.4.1':
+    resolution: {integrity: sha512-shSSiZPEg/S5iTUd1D9BE8HhQY9WJ8HntaWXibvDmupDPa2zf6717DXh0BSeqnO1137iLZ3bwOEn4wUvNhzz/Q==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/types@0.5.1':
+    resolution: {integrity: sha512-izgmKuFyS4remXsYEHdYJKEX/0mAXwikYPSJ7+DHrSoA/vpJ7Wyv5pp7WXt2cSVw7gXLXhugTbUZpk16Dye3xw==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/utils@0.4.1':
+    resolution: {integrity: sha512-D/pGcvhUCMnJkinjVWn4yoH0dOL6F+f/ulC8HaIb+7PsbNtyAUBjWT3Wqt9E3tq627rO5k5aWubCSEEfpxhCLQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
+
+  '@stdlib/wasm@0.2.1':
+    resolution: {integrity: sha512-1VLe0NT5FmTzyVem4aDRA6/x87wiIk/ADQV0uaaSzA0oVlox6bPsKfJc+uOr3g+5ovp2gsAi1UTIshLxWNqvxQ==}
+    engines: {node: '>=0.10.0', npm: '>2.7.0'}
+    os: [aix, darwin, freebsd, linux, macos, openbsd, sunos, win32, windows]
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -956,6 +1137,9 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
+  core-util-is@1.0.3:
+    resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -1024,6 +1208,14 @@ packages:
 
   dayjs@1.11.21:
     resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
+
+  debug@2.6.9:
+    resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
 
   debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
@@ -1414,6 +1606,9 @@ packages:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
     engines: {node: '>=0.8.19'}
 
+  inherits@2.0.4:
+    resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
     engines: {node: '>= 0.4'}
@@ -1421,6 +1616,9 @@ packages:
   internmap@2.0.3:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
+
+  is-any-array@3.0.0:
+    resolution: {integrity: sha512-o4h+tylWykC4BD1vaejp6gDxoM13bwW8FGuNs4yIKpj8xbBJcRxJx8vZpq0dCr7ZDEfeKjmsi/euolKhX6f/ww==}
 
   is-array-buffer@3.0.5:
     resolution: {integrity: sha512-DDfANUiiG2wC1qawP66qlTugJeL5HyzMpfr8lLK+jMQirGzNod0B12cFB/9q838Ru27sBwfw78/rdoU7RERz6A==}
@@ -1528,6 +1726,9 @@ packages:
   is-weakset@2.0.4:
     resolution: {integrity: sha512-mfcwb6IzQyOKTs84CQMrOwW4gQcaTOAWJ0zzJCl2WSPDrWk/OzDaImWFH3djXhb24g4eudZfLRozAvPGw4d9hQ==}
     engines: {node: '>= 0.4'}
+
+  isarray@1.0.0:
+    resolution: {integrity: sha512-VLghIWNM6ELQzo7zwmcg0NmTVyWKYjvIeM83yjp0wRDTmUnrM678fQbcKBo6n2CJEF0szoG//ytg+TKla89ALQ==}
 
   isarray@2.0.5:
     resolution: {integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==}
@@ -1712,6 +1913,21 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
+  ml-array-max@2.0.0:
+    resolution: {integrity: sha512-QQZ4kENwpWmyNb98UXRDFXrmtIXuXtt1+bSbda/2KA85+F+rrJP8hZk6QOkCQXM2Th9mUDYdq/PNByPdT9ID4A==}
+
+  ml-array-min@2.0.0:
+    resolution: {integrity: sha512-GRj6Ky6sW9vGL6yIjgsHmXZ9YgrdmcQ8nCxPqEGeKc6dkfYg1XDYxGFxADUjNuZyoCd5PUscWAS4N+cFaX6hFg==}
+
+  ml-array-rescale@2.0.0:
+    resolution: {integrity: sha512-2GGtKfSno94/kIloWGvpp/U5Q5vLvLrza+SAaGsLeo6Xj4mEbA6Gqx+oTfZFkxnd1grT2X007HfJNs3T5BsiVg==}
+
+  ml-matrix@6.12.2:
+    resolution: {integrity: sha512-GC+BnW+pBh8Auap8goAxY0senAmF0IEoc3HNVSfnfbvGw0buuDIYb9kAKMS1l+GiwJ1rfK2bzJ8IHhwjzATSFA==}
+
+  ms@2.0.0:
+    resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
+
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -1850,6 +2066,9 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
+  process-nextick-args@2.0.1:
+    resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
+
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
@@ -1883,6 +2102,9 @@ packages:
   react@19.2.4:
     resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
+
+  readable-stream@2.3.8:
+    resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
 
   recharts@3.8.1:
     resolution: {integrity: sha512-mwzmO1s9sFL0TduUpwndxCUNoXsBw3u3E/0+A+cLcrSfQitSG62L32N69GhqUrrT5qKcAE3pCGVINC6pqkBBQg==}
@@ -1933,6 +2155,9 @@ packages:
   safe-array-concat@1.1.4:
     resolution: {integrity: sha512-wtZlHyOje6OZTGqAoaDKxFkgRtkF9CnHAVnCHKfuj200wAgL+bSJhdsCD2l0Qx/2ekEXjPWcyKkfGb5CPboslg==}
     engines: {node: '>=0.4'}
+
+  safe-buffer@5.1.2:
+    resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
 
   safe-push-apply@1.0.0:
     resolution: {integrity: sha512-iKE9w/Z7xCzUMIZqdBsp6pEQvwuEebH4vdpjcDWnyzaI6yl6O9FHvVpmGelvEHNsoY6wGblkxR6Zty/h00WiSA==}
@@ -2030,6 +2255,9 @@ packages:
   string.prototype.trimstart@1.0.8:
     resolution: {integrity: sha512-UXSH262CSZY1tfu3G3Secr6uGLCFVPMhIqHjlgCUtCCcgihYc/xKs9djMTMUOb2j1mVSeU8EU6NWc/iQKU6Gfg==}
     engines: {node: '>= 0.4'}
+
+  string_decoder@1.1.1:
+    resolution: {integrity: sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==}
 
   strip-bom@3.0.0:
     resolution: {integrity: sha512-vavAMRXOgBVNF6nyEEmL3DBK19iRpDcoIwW+swQ+CbGiu7lju6t+JklA1MHweoWtadgt4ISVUsXLyDq34ddcwA==}
@@ -2145,6 +2373,9 @@ packages:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  util-deprecate@1.0.2:
+    resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
   victory-vendor@37.3.6:
     resolution: {integrity: sha512-SbPDPdDBYp+5MJHhBCAyI7wKM3d5ivekigc2Dk2s7pgbZ9wIgIBYGVw4zGHBml/qTFbexrofXW6Gu4noGxrOwQ==}
@@ -2561,6 +2792,498 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@stdlib/array@0.5.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/boolean': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/iter': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/proxy': 0.4.1
+      '@stdlib/slice': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/assert@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/boolean': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/function': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/os': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/regexp': 0.4.1
+      '@stdlib/slice': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/time': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+      '@stdlib/wasm': 0.2.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/bigint@0.4.1':
+    dependencies:
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/blas@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/napi': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+      '@stdlib/wasm': 0.2.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/boolean@0.4.1':
+    dependencies:
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/buffer@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/cli@0.4.1':
+    dependencies:
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+      minimist: 1.2.8
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/complex@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/constants@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/dstructs@0.1.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/boolean': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/fs@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+      debug: 2.6.9
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/function@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/iter@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/lapack@0.2.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/napi': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/math@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/function': 0.4.1
+      '@stdlib/napi': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+      debug: 2.6.9
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/napi@0.4.1':
+    dependencies:
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/ndarray@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/bigint': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/boolean': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/proxy': 0.4.1
+      '@stdlib/slice': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/nlp@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/random': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/number@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/napi': 0.4.1
+      '@stdlib/os': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/object@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/os@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/process@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/proxy@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/random@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/stats': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+      debug: 2.6.9
+      readable-stream: 2.3.8
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/regexp@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/function': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/slice@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/stats@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/lapack': 0.2.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/napi': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/random': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/streams@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+      debug: 2.6.9
+      readable-stream: 2.3.8
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/strided@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/blas': 0.4.1
+      '@stdlib/complex': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/string@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/dstructs': 0.1.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/nlp': 0.4.1
+      '@stdlib/number': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/random': 0.4.1
+      '@stdlib/regexp': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/symbol@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/time@0.4.1':
+    dependencies:
+      '@stdlib/assert': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/regexp': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/types@0.5.1': {}
+
+  '@stdlib/utils@0.4.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/boolean': 0.4.1
+      '@stdlib/buffer': 0.4.1
+      '@stdlib/cli': 0.4.1
+      '@stdlib/constants': 0.4.1
+      '@stdlib/fs': 0.4.1
+      '@stdlib/function': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/os': 0.4.1
+      '@stdlib/process': 0.4.1
+      '@stdlib/random': 0.4.1
+      '@stdlib/regexp': 0.4.1
+      '@stdlib/streams': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/symbol': 0.4.1
+      '@stdlib/time': 0.4.1
+      '@stdlib/types': 0.5.1
+      debug: 2.6.9
+    transitivePeerDependencies:
+      - supports-color
+
+  '@stdlib/wasm@0.2.1':
+    dependencies:
+      '@stdlib/array': 0.5.1
+      '@stdlib/assert': 0.4.1
+      '@stdlib/math': 0.4.1
+      '@stdlib/ndarray': 0.4.1
+      '@stdlib/object': 0.4.1
+      '@stdlib/strided': 0.4.1
+      '@stdlib/string': 0.4.1
+      '@stdlib/types': 0.5.1
+      '@stdlib/utils': 0.4.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -3021,6 +3744,8 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
+  core-util-is@1.0.3: {}
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -3088,6 +3813,10 @@ snapshots:
       is-data-view: 1.0.2
 
   dayjs@1.11.21: {}
+
+  debug@2.6.9:
+    dependencies:
+      ms: 2.0.0
 
   debug@3.2.7:
     dependencies:
@@ -3617,6 +4346,8 @@ snapshots:
 
   imurmurhash@0.1.4: {}
 
+  inherits@2.0.4: {}
+
   internal-slot@1.1.0:
     dependencies:
       es-errors: 1.3.0
@@ -3624,6 +4355,8 @@ snapshots:
       side-channel: 1.1.1
 
   internmap@2.0.3: {}
+
+  is-any-array@3.0.0: {}
 
   is-array-buffer@3.0.5:
     dependencies:
@@ -3740,6 +4473,8 @@ snapshots:
     dependencies:
       call-bound: 1.0.4
       get-intrinsic: 1.3.0
+
+  isarray@1.0.0: {}
 
   isarray@2.0.5: {}
 
@@ -3890,6 +4625,27 @@ snapshots:
 
   minimist@1.2.8: {}
 
+  ml-array-max@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+
+  ml-array-min@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+
+  ml-array-rescale@2.0.0:
+    dependencies:
+      is-any-array: 3.0.0
+      ml-array-max: 2.0.0
+      ml-array-min: 2.0.0
+
+  ml-matrix@6.12.2:
+    dependencies:
+      is-any-array: 3.0.0
+      ml-array-rescale: 2.0.0
+
+  ms@2.0.0: {}
+
   ms@2.1.3: {}
 
   nanoid@3.3.14: {}
@@ -4030,6 +4786,8 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
+  process-nextick-args@2.0.1: {}
+
   prop-types@15.8.1:
     dependencies:
       loose-envify: 1.4.0
@@ -4057,6 +4815,16 @@ snapshots:
       redux: 5.0.1
 
   react@19.2.4: {}
+
+  readable-stream@2.3.8:
+    dependencies:
+      core-util-is: 1.0.3
+      inherits: 2.0.4
+      isarray: 1.0.0
+      process-nextick-args: 2.0.1
+      safe-buffer: 5.1.2
+      string_decoder: 1.1.1
+      util-deprecate: 1.0.2
 
   recharts@3.8.1(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react-is@16.13.1)(react@19.2.4)(redux@5.0.1):
     dependencies:
@@ -4132,6 +4900,8 @@ snapshots:
       get-intrinsic: 1.3.0
       has-symbols: 1.1.0
       isarray: 2.0.5
+
+  safe-buffer@5.1.2: {}
 
   safe-push-apply@1.0.0:
     dependencies:
@@ -4300,6 +5070,10 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
+  string_decoder@1.1.1:
+    dependencies:
+      safe-buffer: 5.1.2
+
   strip-bom@3.0.0: {}
 
   strip-json-comments@3.1.1: {}
@@ -4444,6 +5218,8 @@ snapshots:
   use-sync-external-store@1.6.0(react@19.2.4):
     dependencies:
       react: 19.2.4
+
+  util-deprecate@1.0.2: {}
 
   victory-vendor@37.3.6:
     dependencies:

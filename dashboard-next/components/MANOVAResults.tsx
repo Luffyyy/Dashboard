@@ -114,9 +114,13 @@ export default function MANOVAResults({ messages }: MANOVAResultsProps) {
     <div className="space-y-6">
       {/* Hypothesis Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Research Hypothesis</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Hypothesis 1: Thermal-Vertical Stratification Pattern (Stratification)</h3>
+        <p className="text-sm text-blue-800 mb-2">
+          There is a significant difference in the values of the second climate component (PC2) between different height zones (Z) in the room.
+        </p>
         <p className="text-sm text-blue-800">
-          <strong>H₀ (Null):</strong> The mean vectors of environmental variables (PC1, PC2, Temperature, Humidity, Pressure) are equal across height zones.
+          <strong>H₀ (Null):</strong> The mean values of PC2 and environmental variables are equal across height zones.<br />
+          <strong>H₁ (Alternative):</strong> The mean values of PC2 differ significantly between Low, Intermediate, and High height zones.
         </p>
         <p className="text-sm text-blue-800 mt-2">
           <strong>H₁ (Alternative):</strong> At least one height zone has a significantly different mean vector.
@@ -141,12 +145,36 @@ export default function MANOVAResults({ messages }: MANOVAResultsProps) {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">Wilks' Lambda</p>
-            <p className="text-lg font-semibold text-slate-900">{manovaResult.wilksLambda.toFixed(4)}</p>
+            <p className="text-xs text-slate-600 font-medium">Wilks' Lambda (Multivariate Test)</p>
+            <p className="text-lg font-semibold text-slate-900">{(manovaResult!.wilksLambda).toFixed(4)}</p>
+            <p className="text-xs text-slate-500 mt-1">Smaller values indicate stronger group differences</p>
           </div>
           <div className="bg-slate-50 p-3 rounded">
-            <p className="text-xs text-slate-600 font-medium">Pillai&apos;s Trace</p>
-            <p className="text-lg font-semibold text-slate-900">{manovaResult.pillaiTrace.toFixed(4)}</p>
+            <p className="text-xs text-slate-600 font-medium">Pillai's Trace</p>
+            <p className="text-lg font-semibold text-slate-900">{(manovaResult!.pillaiTrace).toFixed(4)}</p>
+            <p className="text-xs text-slate-500 mt-1">Larger values indicate stronger effects</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded">
+            <p className="text-xs text-slate-600 font-medium">p-value (Significance)</p>
+            <p className={`text-lg font-semibold ${isSignificant ? 'text-green-700' : 'text-red-700'}`}>
+              {(manovaResult!.pValue).toFixed(6)}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">{isSignificant ? 'p < 0.05: Significant' : 'p ≥ 0.05: Not Significant'}</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded">
+            <p className="text-xs text-slate-600 font-medium">F-Statistic</p>
+            <p className="text-lg font-semibold text-slate-900">{manovaResult!.f.toFixed(3)}</p>
+            <p className="text-xs text-slate-500 mt-1">Test statistic for hypothesis</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded">
+            <p className="text-xs text-slate-600 font-medium">Degrees of Freedom</p>
+            <p className="text-lg font-semibold text-slate-900">{manovaResult!.dfNum.toFixed(0)}/{manovaResult!.dfDen.toFixed(0)}</p>
+            <p className="text-xs text-slate-500 mt-1">Numerator/Denominator</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded">
+            <p className="text-xs text-slate-600 font-medium">Effect Size (η²)</p>
+            <p className="text-lg font-semibold text-slate-900">{manovaResult!.effectSize.toFixed(4)}</p>
+            <p className="text-xs text-slate-500 mt-1">Proportion of variance</p>
           </div>
           <div className="bg-slate-50 p-3 rounded">
             <p className="text-xs text-slate-600 font-medium">F-Statistic</p>
@@ -177,18 +205,19 @@ export default function MANOVAResults({ messages }: MANOVAResultsProps) {
 
       {/* Group Means Comparison */}
       <div className="bg-white border border-slate-200 rounded-lg p-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Group Means by Height Zone</h3>
+        <h3 className="font-semibold text-slate-900 mb-2">Mean Values by Height Zone</h3>
+        <p className="text-sm text-slate-600 mb-4">PC2 (highlighted in purple) shows vertical stratification patterns. Significant differences in PC2 across zones support Hypothesis 1.</p>
         <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={meansData}>
+          <BarChart data={meansData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="zone" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <Tooltip />
-            <Legend />
-            <Bar yAxisId="left" dataKey="PC1" fill="#0ea5e9" />
-            <Bar yAxisId="left" dataKey="PC2" fill="#6366f1" />
-            <Bar yAxisId="right" dataKey="Temp (°C)" fill="#f97316" />
+            <YAxis yAxisId="left" label={{ value: 'PC Values', angle: -90, position: 'insideLeft' }} />
+            <YAxis yAxisId="right" orientation="right" label={{ value: 'Temperature (°C), Humidity (%)', angle: 90, position: 'insideRight' }} />
+            <Tooltip formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />
+            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+            <Bar yAxisId="left" dataKey="PC2" fill="#6366f1" name="PC2 (Stratification)" />
+            <Bar yAxisId="left" dataKey="PC1" fill="#0ea5e9" name="PC1" />
+            <Bar yAxisId="right" dataKey="Temp (°C)" fill="#f97316" name="Temperature (°C)" />
           </BarChart>
         </ResponsiveContainer>
       </div>
