@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useMemo } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Upload, RotateCcw, Loader2, FileJson } from 'lucide-react';
 import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
@@ -21,6 +21,7 @@ export interface MQTTMessage {
 
 interface WrapperProps {
   initialMessages: MQTTMessage[];
+  defaultConnectionLabel?: string;
   brokerHost: string;
   clientId: string;
 }
@@ -35,6 +36,76 @@ export function getHeightZone(z: number): HeightZone {
   if (z <= 300) return HeightZone.LOW;
   if (z <= 600) return HeightZone.INTERMEDIATE;
   return HeightZone.HIGH;
+}
+
+function getDatasetDefaults(messages: MQTTMessage[]) {
+  if (!messages.length) {
+    return {
+      latestValidMessage: null as MQTTMessage | null,
+      defaultDay: '',
+      defaultEndMinutesValue: 1440,
+      activeHeightFilter: HeightZone.INTERMEDIATE,
+    };
+  }
+
+  let latestValidMessage: MQTTMessage | null = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].X !== undefined && messages[i].Y !== undefined) {
+      latestValidMessage = messages[i];
+      break;
+    }
+  }
+
+  const days = new Set<string>();
+  messages.forEach((message) => days.add(formatTimestampDay(message.createAt)));
+  const defaultDay = Array.from(days).sort().at(-1) || '';
+  const defaultEndMinutesValue = latestValidMessage ? getTimestampMinutes(latestValidMessage.createAt) ?? 1440 : 1440;
+
+  return {
+    latestValidMessage,
+    defaultDay,
+    defaultEndMinutesValue,
+    activeHeightFilter: latestValidMessage ? getHeightZone(latestValidMessage.Z) : HeightZone.INTERMEDIATE,
+  };
+}
+
+type DashboardDataset = {
+  messages: MQTTMessage[];
+  brokerHost: string;
+  clientId: string;
+  label: string;
+};
+
+function extractDatasetFromJson(json: unknown, fallbackHost: string, fallbackClientId: string): DashboardDataset {
+  const candidateArray = Array.isArray(json) ? json : [json];
+
+  for (const entry of candidateArray) {
+    if (!entry || typeof entry !== 'object') continue;
+
+    const record = entry as Partial<{
+      messages: MQTTMessage[];
+      host: string;
+      clientId: string;
+      name: string;
+      id: string;
+    }>;
+
+    if (Array.isArray(record.messages)) {
+      return {
+        messages: record.messages,
+        brokerHost: record.host || fallbackHost,
+        clientId: record.clientId || fallbackClientId,
+        label: record.name || record.id || 'Uploaded JSON',
+      };
+    }
+  }
+
+  return {
+    messages: [],
+    brokerHost: fallbackHost,
+    clientId: fallbackClientId,
+    label: 'Uploaded JSON',
+  };
 }
 
 function checkWarning(topic: string, val: number): boolean {
@@ -52,29 +123,35 @@ function getSectorCenter(message: MQTTMessage | null) {
   };
 }
 
-export default function DashboardClientWrapper({ initialMessages, brokerHost, clientId }: WrapperProps) {
+export default function DashboardClientWrapper({ initialMessages, brokerHost, clientId, defaultConnectionLabel = 'Default JSON' }: WrapperProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const defaultDataset = useMemo(() => ({
+    messages: initialMessages,
+    brokerHost,
+    clientId,
+    label: defaultConnectionLabel,
+  }), [defaultConnectionLabel, initialMessages, brokerHost, clientId]);
+
+  const [dataset, setDataset] = useState(defaultDataset);
+  const [isLoadingDataset, setIsLoadingDataset] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const defaultViewState = useMemo(() => getDatasetDefaults(defaultDataset.messages), [defaultDataset.messages]);
   
   // Isolate latest message containing valid coordinates
   const latestValidMessage = useMemo(() => {
-    if (!initialMessages.length) return null;
-    for (let i = initialMessages.length - 1; i >= 0; i--) {
-      if (initialMessages[i].X !== undefined && initialMessages[i].Y !== undefined) return initialMessages[i];
-    }
-    return initialMessages[initialMessages.length - 1];
-  }, [initialMessages]);
+    return getDatasetDefaults(dataset.messages).latestValidMessage;
+  }, [dataset.messages]);
 
   const availableDays = useMemo(() => {
     const days = new Set<string>();
-    initialMessages.forEach((m) => days.add(formatTimestampDay(m.createAt)));
+    dataset.messages.forEach((m) => days.add(formatTimestampDay(m.createAt)));
     return Array.from(days).sort();
-  }, [initialMessages]);
+  }, [dataset.messages]);
 
-  const defaultDay = availableDays[availableDays.length - 1] || "";
+  const defaultDay = defaultViewState.defaultDay;
 
-  const defaultEndMinutesValue = useMemo(() => {
-    if (!latestValidMessage) return 1440;
-    return getTimestampMinutes(latestValidMessage.createAt) ?? 1440;
-  }, [latestValidMessage]);
+  const defaultEndMinutesValue = defaultViewState.defaultEndMinutesValue;
 
   // View States
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova' | 'kriging'>('dashboard');
@@ -82,9 +159,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
   const [endTimeMinutes, setEndTimeMinutes] = useState<number>(defaultEndMinutesValue);
   const [selectedMessage, setSelectedMessage] = useState<MQTTMessage | null>(latestValidMessage);
-  const [activeHeightFilter, setActiveHeightFilter] = useState<HeightZone>(() => 
-    latestValidMessage ? getHeightZone(latestValidMessage.Z) : HeightZone.INTERMEDIATE
-  );
+  const [activeHeightFilter, setActiveHeightFilter] = useState<HeightZone>(defaultViewState.activeHeightFilter);
 
   const isLive = selectedDay === defaultDay && endTimeMinutes >= defaultEndMinutesValue && startTimeMinutes === 0;
   const latestSector = useMemo(() => getSectorCenter(latestValidMessage), [latestValidMessage]);
@@ -101,7 +176,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
   // Filter messages based on playback timeline parameters
   const historicalTimeScopeMessages = useMemo(() => {
-    return initialMessages.filter((m) => {
+    return dataset.messages.filter((m) => {
       if (formatTimestampDay(m.createAt) !== selectedDay) return false;
 
       const msgMinutes = getTimestampMinutes(m.createAt);
@@ -109,7 +184,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
       return msgMinutes >= startTimeMinutes && msgMinutes <= endTimeMinutes;
     });
-  }, [initialMessages, selectedDay, startTimeMinutes, endTimeMinutes]);
+  }, [dataset.messages, selectedDay, startTimeMinutes, endTimeMinutes]);
 
   const selectedMessageForViews = useMemo(() => {
     if (selectedMessage && historicalTimeScopeMessages.some((message) => message.id === selectedMessage.id)) {
@@ -200,6 +275,51 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     };
   }, [latestValidMessage, initialMessages]);
 
+  const resetDataset = () => {
+    setLoadError(null);
+    setDataset(defaultDataset);
+    setSelectedDay(defaultViewState.defaultDay);
+    setStartTimeMinutes(0);
+    setEndTimeMinutes(defaultEndMinutesValue);
+    setSelectedMessage(latestValidMessage);
+    setActiveHeightFilter(defaultViewState.activeHeightFilter);
+  };
+
+  const loadJsonFile = async (file: File) => {
+    setLoadError(null);
+    setIsLoadingDataset(true);
+
+    try {
+      const fileText = await file.text();
+      const parsed = JSON.parse(fileText);
+      const extracted = extractDatasetFromJson(parsed, brokerHost, clientId);
+
+      if (!extracted.messages.length) {
+        throw new Error('No messages array was found in the uploaded JSON file.');
+      }
+
+      const loadedDefaults = getDatasetDefaults(extracted.messages);
+
+      setDataset(extracted);
+      setSelectedDay(loadedDefaults.defaultDay);
+      setStartTimeMinutes(0);
+      setEndTimeMinutes(loadedDefaults.defaultEndMinutesValue);
+      setSelectedMessage(loadedDefaults.latestValidMessage);
+      setActiveHeightFilter(loadedDefaults.activeHeightFilter);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Failed to load JSON file.');
+    } finally {
+      setIsLoadingDataset(false);
+    }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    void loadJsonFile(file);
+    event.target.value = '';
+  };
+
   const handleTimeRangeChange = (start: number, end: number) => {
     setStartTimeMinutes(start);
     setEndTimeMinutes(end);
@@ -218,16 +338,63 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-10 px-8 py-3.5 flex justify-between items-center">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans relative">
+      {isLoadingDataset && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/55 backdrop-blur-sm">
+          <div className="w-[min(92vw,32rem)] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Loading dashboard data</p>
+                <p className="text-xs text-slate-500">Parsing the JSON file and rebuilding all views.</p>
+              </div>
+            </div>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-linear-to-r from-blue-500 via-cyan-400 to-emerald-400" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-10 px-8 py-3.5 flex justify-between items-center gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">MiR-Eco Telemetry Dashboard</h1>
-          <p className="text-xs text-slate-500">Node ID: <span className="font-mono text-blue-600 font-semibold">{clientId}</span></p>
+          <p className="text-xs text-slate-500">
+            Node ID: <span className="font-mono text-blue-600 font-semibold">{dataset.clientId}</span>
+            <span className="mx-2 text-slate-300">•</span>
+            Source: <span className="font-medium text-slate-700">{dataset.label}</span>
+          </p>
         </div>
-        <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 text-xs font-medium rounded-full">
-          {brokerHost}
+        <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleFileInputChange} />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+          >
+            <Upload size={14} />
+            Load JSON
+          </button>
+          <button
+            type="button"
+            onClick={resetDataset}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+          >
+            <RotateCcw size={14} />
+            Default JSON
+          </button>
+          <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 text-xs font-medium rounded-full inline-flex items-center gap-2">
+            <FileJson size={14} />
+            {dataset.brokerHost}
+          </div>
         </div>
       </header>
+
+      {loadError && (
+        <div className="mx-8 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {loadError}
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <nav className="bg-white border-b border-slate-100 px-8">
@@ -255,11 +422,11 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
       {/* Made gaps tighter using space-y-4 instead of space-y-6 */}
       <main className="p-6 mx-auto space-y-4 max-w-7xl">
         {activeTab === 'pca' ? (
-          <PCABiplot messages={initialMessages} />
+          <PCABiplot messages={dataset.messages} />
         ) : activeTab === 'manova' ? (
-          <MANOVAResults messages={initialMessages} />
+          <MANOVAResults messages={dataset.messages} />
         ) : activeTab === 'kriging' ? (
-          <KrigingAnalysis messages={initialMessages} />
+          <KrigingAnalysis messages={dataset.messages} />
         ) : (
         <>
         {/* Real-time Metric Banners (Made padding smaller using p-3.5) */}

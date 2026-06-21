@@ -13,6 +13,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClientWrapper 
       initialMessages={connection.messages || []} 
+      defaultConnectionLabel="All_connections_updated_reordered.json"
       brokerHost={connection.host}
       clientId={connection.clientId}
     />
