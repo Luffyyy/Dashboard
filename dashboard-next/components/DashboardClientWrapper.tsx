@@ -27,15 +27,28 @@ interface WrapperProps {
 }
 
 export enum HeightZone {
-  LOW = 'Low (0-300mm)',
-  INTERMEDIATE = 'Intermediate (301-600mm)',
-  HIGH = 'High (600mm+)'
+  LOW = 'Low',
+  INTERMEDIATE = 'Intermediate',
+  HIGH = 'High'
 }
 
-function getHeightZone(z: number): HeightZone {
-  if (z <= 300) return HeightZone.LOW;
-  if (z <= 600) return HeightZone.INTERMEDIATE;
-  return HeightZone.HIGH;
+function getHeightZone(z: number | string): HeightZone {
+  if (typeof z === 'string') {
+    const s = z.toLowerCase();
+    if (s.includes('low')) return HeightZone.LOW;
+    if (s.includes('inter')) return HeightZone.INTERMEDIATE;
+    if (s.includes('high')) return HeightZone.HIGH;
+    return HeightZone.INTERMEDIATE;
+  }
+
+  // If a numeric value is provided, treat it as meters and fall back to sensible thresholds
+  if (typeof z === 'number') {
+    if (z <= 0.3) return HeightZone.LOW;
+    if (z <= 0.6) return HeightZone.INTERMEDIATE;
+    return HeightZone.HIGH;
+  }
+
+  return HeightZone.INTERMEDIATE;
 }
 
 function getDatasetDefaults(messages: MQTTMessage[]) {
@@ -117,9 +130,10 @@ function checkWarning(topic: string, val: number): boolean {
 
 function getSectorCenter(message: MQTTMessage | null) {
   if (!message) return null;
+  // X/Y are now in meters; use 1m grid cells with centers at .5, 1.5, ...
   return {
-    x: Math.floor(message.X / 100) * 100 + 50,
-    y: Math.floor(message.Y / 100) * 100 + 50,
+    x: Math.floor(message.X) + 0.5,
+    y: Math.floor(message.Y) + 0.5,
   };
 }
 
@@ -223,8 +237,9 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
     historicalTimeScopeMessages.forEach((m) => {
       const zone = getHeightZone(m.Z);
-      const xGrid = Math.floor(m.X / 100) * 100 + 50;
-      const yGrid = Math.floor(m.Y / 100) * 100 + 50;
+      // X/Y are in meters; bin into 1m cells and use the center (e.g. 0.5, 1.5)
+      const xGrid = Math.floor(m.X) + 0.5;
+      const yGrid = Math.floor(m.Y) + 0.5;
       const key = `${xGrid}_${yGrid}`;
 
       const targetMap = zones[zone];
