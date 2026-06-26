@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { AlertTriangle, Upload, RotateCcw, Loader2, FileJson } from 'lucide-react';
 import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
@@ -8,6 +8,7 @@ import PCABiplot from './PCABiplot';
 import MANOVAResults from './MANOVAResults';
 import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
+import { initFirebaseFromEnv, subscribeToMessages, clearMessages, loadMessages } from '../lib/firebase';
 
 export interface MQTTMessage {
   id: string;
@@ -151,6 +152,27 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const defaultViewState = useMemo(() => getDatasetDefaults(defaultDataset.messages), [defaultDataset.messages]);
+
+  // Initialize Firebase and subscribe to Firestore messages for the current dataset clientId.
+  useEffect(() => {
+    initFirebaseFromEnv();
+  }, []);
+
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    try {
+      unsub = subscribeToMessages(dataset.clientId, (docs) => {
+        setDataset((prev) => ({ ...prev, messages: docs }));
+      });
+    } catch (err) {
+      // swallow: subscription may fail if Firebase not configured; UI will still work with local JSON
+      console.error('Firestore subscription failed', err);
+    }
+
+    return () => {
+      try { unsub && unsub(); } catch (_) {}
+    };
+  }, [dataset.clientId]);
   
   // Isolate latest message containing valid coordinates
   const latestValidMessage = useMemo(() => {
@@ -315,7 +337,18 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
       const loadedDefaults = getDatasetDefaults(extracted.messages);
 
-      setDataset(extracted);
+      // Persist into Firestore: clear existing then load new messages for that clientId.
+      try {
+        await clearMessages(extracted.clientId);
+        await loadMessages(extracted.clientId, extracted.messages);
+      } catch (err) {
+        // If Firestore isn't configured or fails, fall back to loading locally.
+        console.warn('Firestore write failed, falling back to local dataset', err);
+        setDataset(extracted);
+      }
+
+      // Update local view state to the uploaded dataset while subscription updates arrive
+      setDataset((prev) => ({ ...prev, brokerHost: extracted.brokerHost, clientId: extracted.clientId, label: extracted.label, messages: extracted.messages }));
       setSelectedDay(loadedDefaults.defaultDay);
       setStartTimeMinutes(0);
       setEndTimeMinutes(loadedDefaults.defaultEndMinutesValue);

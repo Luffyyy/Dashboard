@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.21",
+    "firebase": "^12.15.0",
     "jstat": "^1.9.6",
     "lucide-react": "^1.17.0",
     "mathjs": "^15.2.0",
