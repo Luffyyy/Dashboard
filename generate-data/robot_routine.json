@@ -1,0 +1,380 @@
+[
+    {
+        "reading_id": 1,
+        "timestamp": "2026-06-22T10:00:00Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 23.79,
+            "humidity": 58.79,
+            "pressure": 980.89
+        }
+    },
+    {
+        "reading_id": 2,
+        "timestamp": "2026-06-22T10:00:15Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.97,
+            "humidity": 60.73,
+            "pressure": 983.03
+        }
+    },
+    {
+        "reading_id": 3,
+        "timestamp": "2026-06-22T10:00:30Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 23.96,
+            "humidity": 71.36,
+            "pressure": 982.76
+        }
+    },
+    {
+        "reading_id": 4,
+        "timestamp": "2026-06-22T10:00:45Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.5,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 24.1,
+            "humidity": 71.54,
+            "pressure": 981.65
+        }
+    },
+    {
+        "reading_id": 5,
+        "timestamp": "2026-06-22T10:01:00Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.5,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.95,
+            "humidity": 57.36,
+            "pressure": 981.31
+        }
+    },
+    {
+        "reading_id": 6,
+        "timestamp": "2026-06-22T10:01:15Z",
+        "location": {
+            "x": 0.0,
+            "y": 0.5,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 24.13,
+            "humidity": 71.39,
+            "pressure": 981.26
+        }
+    },
+    {
+        "reading_id": 7,
+        "timestamp": "2026-06-22T10:01:30Z",
+        "location": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 23.49,
+            "humidity": 70.9,
+            "pressure": 982.54
+        }
+    },
+    {
+        "reading_id": 8,
+        "timestamp": "2026-06-22T10:01:45Z",
+        "location": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.26,
+            "humidity": 72.34,
+            "pressure": 981.35
+        }
+    },
+    {
+        "reading_id": 9,
+        "timestamp": "2026-06-22T10:02:00Z",
+        "location": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 24.23,
+            "humidity": 72.75,
+            "pressure": 982.27
+        }
+    },
+    {
+        "reading_id": 10,
+        "timestamp": "2026-06-22T10:02:15Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 24.13,
+            "humidity": 71.48,
+            "pressure": 981.33
+        }
+    },
+    {
+        "reading_id": 11,
+        "timestamp": "2026-06-22T10:02:30Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.97,
+            "humidity": 62.9,
+            "pressure": 981.08
+        }
+    },
+    {
+        "reading_id": 12,
+        "timestamp": "2026-06-22T10:02:45Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 24.21,
+            "humidity": 56.93,
+            "pressure": 980.67
+        }
+    },
+    {
+        "reading_id": 13,
+        "timestamp": "2026-06-22T10:03:00Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 24.11,
+            "humidity": 70.03,
+            "pressure": 983.0
+        }
+    },
+    {
+        "reading_id": 14,
+        "timestamp": "2026-06-22T10:03:15Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.17,
+            "humidity": 70.86,
+            "pressure": 981.16
+        }
+    },
+    {
+        "reading_id": 15,
+        "timestamp": "2026-06-22T10:03:30Z",
+        "location": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 23.98,
+            "humidity": 61.57,
+            "pressure": 982.51
+        }
+    },
+    {
+        "reading_id": 16,
+        "timestamp": "2026-06-22T10:03:45Z",
+        "location": {
+            "x": 0.5,
+            "y": 1.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 24.24,
+            "humidity": 60.74,
+            "pressure": 981.97
+        }
+    },
+    {
+        "reading_id": 17,
+        "timestamp": "2026-06-22T10:04:00Z",
+        "location": {
+            "x": 0.5,
+            "y": 1.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.29,
+            "humidity": 60.73,
+            "pressure": 980.85
+        }
+    },
+    {
+        "reading_id": 18,
+        "timestamp": "2026-06-22T10:04:15Z",
+        "location": {
+            "x": 0.5,
+            "y": 1.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 24.13,
+            "humidity": 57.91,
+            "pressure": 982.25
+        }
+    },
+    {
+        "reading_id": 19,
+        "timestamp": "2026-06-22T10:04:30Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 23.23,
+            "humidity": 60.03,
+            "pressure": 982.63
+        }
+    },
+    {
+        "reading_id": 20,
+        "timestamp": "2026-06-22T10:04:45Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.97,
+            "humidity": 61.4,
+            "pressure": 982.85
+        }
+    },
+    {
+        "reading_id": 21,
+        "timestamp": "2026-06-22T10:05:00Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 23.85,
+            "humidity": 72.11,
+            "pressure": 981.7
+        }
+    },
+    {
+        "reading_id": 22,
+        "timestamp": "2026-06-22T10:05:15Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.5,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 23.66,
+            "humidity": 60.69,
+            "pressure": 983.27
+        }
+    },
+    {
+        "reading_id": 23,
+        "timestamp": "2026-06-22T10:05:30Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.5,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.87,
+            "humidity": 61.29,
+            "pressure": 981.02
+        }
+    },
+    {
+        "reading_id": 24,
+        "timestamp": "2026-06-22T10:05:45Z",
+        "location": {
+            "x": 1.0,
+            "y": 0.5,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 23.55,
+            "humidity": 59.92,
+            "pressure": 980.86
+        }
+    },
+    {
+        "reading_id": 25,
+        "timestamp": "2026-06-22T10:06:00Z",
+        "location": {
+            "x": 1.0,
+            "y": 1.0,
+            "z": "low"
+        },
+        "sensors": {
+            "temperature": 24.36,
+            "humidity": 71.66,
+            "pressure": 981.39
+        }
+    },
+    {
+        "reading_id": 26,
+        "timestamp": "2026-06-22T10:06:15Z",
+        "location": {
+            "x": 1.0,
+            "y": 1.0,
+            "z": "intermediate"
+        },
+        "sensors": {
+            "temperature": 23.49,
+            "humidity": 57.28,
+            "pressure": 981.2
+        }
+    },
+    {
+        "reading_id": 27,
+        "timestamp": "2026-06-22T10:06:30Z",
+        "location": {
+            "x": 1.0,
+            "y": 1.0,
+            "z": "high"
+        },
+        "sensors": {
+            "temperature": 23.46,
+            "humidity": 56.78,
+            "pressure": 980.96
+        }
+    }
+]
