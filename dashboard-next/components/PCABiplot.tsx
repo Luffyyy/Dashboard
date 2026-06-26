@@ -141,7 +141,7 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Biplot Canvas */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col min-h-120">
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col min-h-[30rem] min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4 mb-3">
             <div>
               <h3 className="font-semibold text-slate-700">PCA Biplot — PC1 vs PC2</h3>
@@ -157,7 +157,7 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
             </div>
           </div>
 
-          <div className="flex-1 h-77.5">
+          <div className="flex-1 h-[22rem] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 15, right: 25, bottom: 15, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -238,7 +238,7 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
         </div>
 
         {/* Loadings / interpretation panel */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-1 flex flex-col min-h-120">
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-1 flex flex-col min-h-[30rem] min-w-0">
           <div className="border-b border-slate-100 pb-4 mb-4">
             <h3 className="font-semibold text-slate-700 flex items-center gap-2">
               <Sparkles size={15} className="text-indigo-500" />

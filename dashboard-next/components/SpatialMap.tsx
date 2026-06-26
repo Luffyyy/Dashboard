@@ -64,7 +64,7 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between h-full min-h-120 lg:col-span-1">
+    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between h-full min-h-[30rem] min-w-0 lg:col-span-1">
       <div>
         {/* Header toolbar component splits */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4 mb-3">
@@ -101,9 +101,9 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
       </div>
 
       {/* Grid Scatter Canvas Space */}
-      <div className="bg-slate-50 rounded-xl border border-slate-100 p-3 flex-1 relative h-77.5">
+      <div className="bg-slate-50 rounded-xl border border-slate-100 p-3 flex-1 relative h-[22rem] min-w-0">
         {!isMounted ? (
-          <div className="h-full min-h-77.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+          <div className="h-full min-h-[22rem] rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
             Loading map...
           </div>
         ) : (

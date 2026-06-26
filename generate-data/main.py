@@ -1,6 +1,5 @@
 import json
 import uuid
-import copy
 import random
 from datetime import datetime, timedelta
 
@@ -26,18 +25,18 @@ def format_time(dt):
     s = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
     return s[:19] + ':' + s[20:]
 
-def apply_variation(topic, payload):
+def apply_variation(topic_key, payload):
     """Applies a small, realistic variation to the payload for intermediate/high scans."""
     try:
         val = float(payload)
-        if 'temp' in topic:
+        if topic_key == 'temp':
             val += random.uniform(-0.15, 0.3)
-        elif 'humid' in topic:
+        elif topic_key == 'humid':
             val += random.uniform(-1.0, 1.5)
-        elif 'pressure' in topic:
+        elif topic_key == 'pressure':
             val += random.uniform(-0.5, 0.5)
         return str(round(val, 2))
-    except ValueError:
+    except (ValueError, TypeError):
         return payload
 
 def main():
@@ -69,8 +68,7 @@ def main():
         # 2. Sort by creation time so we process the sequence chronologically
         valid_msgs.sort(key=lambda msg: parse_time(msg.get('createAt', '')))
         
-        # 3. Group readings by approximate time (e.g., within 2 seconds of each other)
-        #    This ensures all sensors read at the "same spot" are processed together.
+        # 3. Group readings by approximate time (within 2 seconds)
         groups = []
         if valid_msgs:
             current_group = [valid_msgs[0]]
@@ -88,59 +86,66 @@ def main():
                 
         new_messages = []
         x, y = 0.0, 0.0
-        max_x = 5 # Wrap grid after 5 meters 
-        max_y = 5 # Bound room length to 5 meters
+        max_x = 5.0 # Wrap grid after 5 meters 
+        max_y = 5.0 # Bound room length to 5 meters
         
-        # 4. Generate the new interpolated routine sequence
+        # 4. Generate the new interpolated and consolidated sequence
         for group in groups:
             base_time = parse_time(group[0].get('createAt'))
             heights = ["low", "intermediate", "high"]
             
+            # Extract the baseline readings for this time group
+            base_readings = {}
+            for msg in group:
+                topic = msg.get('topic', '')
+                if 'temp' in topic:
+                    base_readings['temp'] = msg.get('payload')
+                elif 'humid' in topic:
+                    base_readings['humid'] = msg.get('payload')
+                elif 'pressure' in topic:
+                    base_readings['pressure'] = msg.get('payload')
+            
             # For each base group position, scan all 3 heights
             for i, z in enumerate(heights):
-                # Offset the timestamp by 2 seconds for each height shift
                 current_time = base_time + timedelta(seconds=i*2)
                 
-                for msg in group:
-                    # Clone the original structured MQTT message
-                    new_msg = copy.deepcopy(msg)
+                # Build a single consolidated entry
+                combined_msg = {
+                    "id": generate_uuid(),
+                    "createAt": format_time(current_time),
+                    "x": x,
+                    "y": y,
+                    "z": z
+                }
+                
+                # Inject and slightly vary the payloads for higher Z-levels
+                if 'temp' in base_readings:
+                    combined_msg['temperature'] = apply_variation('temp', base_readings['temp']) if i > 0 else base_readings['temp']
                     
-                    # Update internal IDs and Timestamps
-                    new_msg['id'] = generate_uuid()
-                    new_msg['createAt'] = format_time(current_time)
-                    # if 'properties' in new_msg: 
-                    #     new_msg['properties']['id'] = new_msg['id']
-                    #     new_msg['properties']['createAt'] = new_msg['createAt']
-                    del new_msg['properties']
-                    # Shift the payload slightly for intermediate & high levels
-                    if i > 0:
-                        new_msg['payload'] = apply_variation(new_msg['topic'], new_msg['payload'])
-                        # if 'properties' in new_msg:
-                        #     new_msg['properties']['payload'] = new_msg['payload']
-                            
-                    # Inject the new position properties straight into the original structure
-                    new_msg['x'] = x
-                    new_msg['y'] = y
-                    new_msg['z'] = z
+                if 'humid' in base_readings:
+                    combined_msg['humidity'] = apply_variation('humid', base_readings['humid']) if i > 0 else base_readings['humid']
+                    
+                if 'pressure' in base_readings:
+                    combined_msg['pressure'] = apply_variation('pressure', base_readings['pressure']) if i > 0 else base_readings['pressure']
 
-                    new_messages.append(new_msg)
+                new_messages.append(combined_msg)
             
-            # 5. Move robot to the next 0.5m grid position for the next chronological reading block
+            # 5. Move robot to the next 0.5m grid position
             x += 0.5
             if x > max_x:
                 x = 0.0
                 y += 0.5
                 if y > max_y:
-                    y = 0.0 # Reset back to start of the room to stay within 5x5 bounds
+                    y = 0.0 # Reset back to start of the room
                 
-        # Replace original messages with our newly scaled routine sequence
+        # Replace original messages with our newly scaled, flattened sequence
         connection['messages'] = new_messages
 
     print(f"Writing expanded structure to '{output_file}'...")
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
         
-    print("Done! The routine has been successfully embedded.")
+    print("Done! The routine has been successfully optimized and embedded.")
 
 if __name__ == "__main__":
     main()

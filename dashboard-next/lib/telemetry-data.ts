@@ -65,22 +65,74 @@ function normalizeMessage(entry: unknown): NormalizedTelemetryMessage | null {
   const y = toCoordinateMeters(entry.y);
   if (x === null || y === null) return null;
 
+  const readingTopic = typeof entry.topic === 'string' ? entry.topic.toLowerCase() : '';
+  const payload = typeof entry.payload === 'string' ? entry.payload : String(entry.payload ?? '');
+
   return {
     id: typeof entry.id === 'string' ? entry.id : `${entry.connectionId ?? 'message'}-${entry.createAt ?? ''}-${x}-${y}`,
     createAt: typeof entry.createAt === 'string' ? entry.createAt : '',
-    payload: typeof entry.payload === 'string' ? entry.payload : String(entry.payload ?? ''),
-    topic: typeof entry.topic === 'string' ? entry.topic : '',
-    connectionId: typeof entry.connectionId === 'string' ? entry.connectionId : '',
+    payload,
+    topic: readingTopic,
+    connectionId: typeof entry.connectionId === 'string' ? entry.connectionId : typeof entry.clientId === 'string' ? entry.clientId : '',
     x: x,
     y: y,
     z: toHeightMeters(entry.z),
   };
 }
 
+function normalizeFlatReadings(entry: MaybeRecord): NormalizedTelemetryMessage[] {
+  const x = toCoordinateMeters(entry.x);
+  const y = toCoordinateMeters(entry.y);
+  if (x === null || y === null) return [];
+
+  const baseId = typeof entry.id === 'string' ? entry.id : `${entry.connectionId ?? entry.clientId ?? 'message'}-${entry.createAt ?? ''}-${x}-${y}`;
+  const createAt = typeof entry.createAt === 'string' ? entry.createAt : '';
+  const connectionId = typeof entry.connectionId === 'string' ? entry.connectionId : typeof entry.clientId === 'string' ? entry.clientId : '';
+  const z = toHeightMeters(entry.z);
+
+  const readings = [
+    { key: 'temperature', aliases: ['temp'] },
+    { key: 'humidity', aliases: [] },
+    { key: 'pressure', aliases: ['barometer', 'baro'] },
+  ] as const;
+
+  return readings.flatMap(({ key, aliases }) => {
+    const rawValue = entry[key] ?? aliases.map((alias) => entry[alias]).find((value) => value !== undefined);
+    if (rawValue === undefined || rawValue === null || rawValue === '') return [];
+
+    const numeric = toNumber(rawValue);
+    if (numeric === null) return [];
+
+    return [
+      {
+        id: `${baseId}-${key}`,
+        createAt,
+        payload: String(numeric),
+        topic: key,
+        connectionId,
+        x,
+        y,
+        z,
+      },
+    ];
+  });
+}
+
 function extractMessagesFromEntry(entry: unknown): NormalizedTelemetryMessage[] {
   if (!isRecord(entry)) return [];
   if (Array.isArray(entry.messages)) {
-    return entry.messages.map(normalizeMessage).filter((message): message is NormalizedTelemetryMessage => message !== null);
+    return entry.messages.flatMap((messageEntry) => {
+      if (isRecord(messageEntry) && ('temperature' in messageEntry || 'humidity' in messageEntry || 'pressure' in messageEntry)) {
+        return normalizeFlatReadings(messageEntry);
+      }
+
+      const message = normalizeMessage(messageEntry);
+      return message ? [message] : [];
+    });
+  }
+
+  if ('temperature' in entry || 'humidity' in entry || 'pressure' in entry) {
+    return normalizeFlatReadings(entry);
   }
 
   const message = normalizeMessage(entry);
@@ -93,7 +145,14 @@ export function normalizeTelemetryDataset(json: unknown, fallbackHost: string, f
   for (const entry of entries) {
     if (!isRecord(entry) || !Array.isArray(entry.messages)) continue;
 
-    const messages = entry.messages.map(normalizeMessage).filter((message): message is NormalizedTelemetryMessage => message !== null);
+    const messages = entry.messages.flatMap((messageEntry) => {
+      if (isRecord(messageEntry) && ('temperature' in messageEntry || 'humidity' in messageEntry || 'pressure' in messageEntry)) {
+        return normalizeFlatReadings(messageEntry);
+      }
+
+      const message = normalizeMessage(messageEntry);
+      return message ? [message] : [];
+    });
     if (!messages.length) continue;
 
     return {

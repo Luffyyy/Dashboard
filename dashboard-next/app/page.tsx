@@ -1,21 +1,19 @@
 import DashboardClientWrapper from '@/components/DashboardClientWrapper';
+import { normalizeTelemetryDataset } from '@/lib/telemetry-data';
 import fs from 'fs';
 import path from 'path';
 
 export default async function DashboardPage() {
-  // Read fallback connections from project root on server render
   const filePath = path.join(process.cwd(), 'All_connections_updated_reordered.json');
   const fileContent = fs.readFileSync(filePath, 'utf8');
-  const connections = JSON.parse(fileContent);
-
-  const connection = connections[0] || { clientId: 'N/A', host: 'Offline', messages: [] };
+  const dataset = normalizeTelemetryDataset(JSON.parse(fileContent), 'Offline', 'N/A');
 
   return (
-    <DashboardClientWrapper 
-      initialMessages={connection.messages || []} 
-      defaultConnectionLabel="All_connections_updated_reordered.json"
-      brokerHost={connection.host}
-      clientId={connection.clientId}
+    <DashboardClientWrapper
+      initialMessages={dataset.messages}
+      defaultConnectionLabel={dataset.label}
+      brokerHost={dataset.brokerHost}
+      clientId={dataset.clientId}
     />
   );
 }

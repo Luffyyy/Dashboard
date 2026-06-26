@@ -1,6 +1,6 @@
 "use client";
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { AlertTriangle, Upload, RotateCcw, Loader2, FileJson } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
@@ -8,8 +8,6 @@ import PCABiplot from './PCABiplot';
 import MANOVAResults from './MANOVAResults';
 import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
-import { initFirebaseFromEnv, subscribeToMessages, clearMessages, loadMessages } from '../lib/firebase';
-import { normalizeTelemetryDataset } from '../lib/telemetry-data';
 
 export interface MQTTMessage {
   id: string;
@@ -31,19 +29,18 @@ interface WrapperProps {
 export enum HeightZone {
   LOW = 'Low',
   INTERMEDIATE = 'Intermediate',
-  HIGH = 'High'
+  HIGH = 'High',
 }
 
 function getHeightZone(z: number | string): HeightZone {
   if (typeof z === 'string') {
-    const s = z.toLowerCase();
-    if (s.includes('low')) return HeightZone.LOW;
-    if (s.includes('inter')) return HeightZone.INTERMEDIATE;
-    if (s.includes('high')) return HeightZone.HIGH;
+    const lowered = z.toLowerCase();
+    if (lowered.includes('low')) return HeightZone.LOW;
+    if (lowered.includes('inter')) return HeightZone.INTERMEDIATE;
+    if (lowered.includes('high')) return HeightZone.HIGH;
     return HeightZone.INTERMEDIATE;
   }
 
-  // Meter-based vertical thresholds.
   if (typeof z === 'number') {
     if (z <= 0.3) return HeightZone.LOW;
     if (z <= 0.6) return HeightZone.INTERMEDIATE;
@@ -83,8 +80,9 @@ function getDatasetDefaults(messages: MQTTMessage[]) {
     activeHeightFilter: latestValidMessage ? getHeightZone(latestValidMessage.z) : HeightZone.INTERMEDIATE,
   };
 }
+
 function checkWarning(topic: string, val: number): boolean {
-  if (topic.includes('temp') && val > 25.00) return true;
+  if (topic.includes('temp') && val > 25.0) return true;
   if (topic.includes('humidity') && (val < 40.0 || val > 75.0)) return true;
   if (topic.includes('pressure') && (val < 950.0 || val > 1050.0)) return true;
   return false;
@@ -92,71 +90,36 @@ function checkWarning(topic: string, val: number): boolean {
 
 function getSectorCenter(message: MQTTMessage | null) {
   if (!message) return null;
-  // Snap to the nearest 0.5m sector center.
   return {
     x: Math.round(message.x * 2) / 2,
     y: Math.round(message.y * 2) / 2,
   };
 }
 
-export default function DashboardClientWrapper({ initialMessages, brokerHost, clientId, defaultConnectionLabel = 'Default JSON' }: WrapperProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const defaultDataset = useMemo(() => ({
-    messages: initialMessages,
-    brokerHost,
-    clientId,
-    label: defaultConnectionLabel,
-  }), [defaultConnectionLabel, initialMessages, brokerHost, clientId]);
+export default function DashboardClientWrapper({ initialMessages, brokerHost, clientId, defaultConnectionLabel = 'Local JSON' }: WrapperProps) {
+  const defaultDataset = useMemo(
+    () => ({
+      messages: initialMessages,
+      brokerHost,
+      clientId,
+      label: defaultConnectionLabel,
+    }),
+    [defaultConnectionLabel, initialMessages, brokerHost, clientId],
+  );
 
   const [dataset, setDataset] = useState(defaultDataset);
-  const [isLoadingDataset, setIsLoadingDataset] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const defaultViewState = useMemo(() => getDatasetDefaults(defaultDataset.messages), [defaultDataset.messages]);
-
-  // Initialize Firebase and subscribe to Firestore messages for the current dataset clientId.
-  useEffect(() => {
-    initFirebaseFromEnv();
-  }, []);
-
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    try {
-      unsub = subscribeToMessages(dataset.clientId, (docs) => {
-        setDataset((prev) => ({ ...prev, messages: docs }));
-      });
-    } catch (err) {
-      // swallow: subscription may fail if Firebase not configured; UI will still work with local JSON
-      console.error('Firestore subscription failed', err);
-    }
-
-    return () => {
-      if (unsub) {
-        try {
-          unsub();
-        } catch {
-          // no-op
-        }
-      }
-    };
-  }, [dataset.clientId]);
-  
-  // Isolate latest message containing valid coordinates
-  const latestValidMessage = useMemo(() => {
-    return getDatasetDefaults(dataset.messages).latestValidMessage;
-  }, [dataset.messages]);
-
+  const latestValidMessage = useMemo(() => getDatasetDefaults(dataset.messages).latestValidMessage, [dataset.messages]);
   const availableDays = useMemo(() => {
     const days = new Set<string>();
-    dataset.messages.forEach((m) => days.add(formatTimestampDay(m.createAt)));
+    dataset.messages.forEach((message) => days.add(formatTimestampDay(message.createAt)));
     return Array.from(days).sort();
   }, [dataset.messages]);
 
   const defaultDay = defaultViewState.defaultDay;
-
   const defaultEndMinutesValue = defaultViewState.defaultEndMinutesValue;
 
-  // View States
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova' | 'kriging'>('dashboard');
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
@@ -177,12 +140,11 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     };
   }, [latestValidMessage]);
 
-  // Filter messages based on playback timeline parameters
   const historicalTimeScopeMessages = useMemo(() => {
-    return dataset.messages.filter((m) => {
-      if (formatTimestampDay(m.createAt) !== selectedDay) return false;
+    return dataset.messages.filter((message) => {
+      if (formatTimestampDay(message.createAt) !== selectedDay) return false;
 
-      const msgMinutes = getTimestampMinutes(m.createAt);
+      const msgMinutes = getTimestampMinutes(message.createAt);
       if (msgMinutes === null) return false;
 
       return msgMinutes >= startTimeMinutes && msgMinutes <= endTimeMinutes;
@@ -203,20 +165,19 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     return historicalTimeScopeMessages[historicalTimeScopeMessages.length - 1] ?? latestValidMessage;
   }, [historicalTimeScopeMessages, latestValidMessage, selectedMessage]);
 
-  // Refactored unified timeline processing extraction mapping helper loop
   const timelines = useMemo(() => {
-    const mapTopic = (kw: string) => historicalTimeScopeMessages
-      .filter((m) => m.topic.includes(kw))
-      .map((m) => ({ time: formatTimestampTime(m.createAt), value: parseFloat(m.payload), id: m.id, x: m.x, y: m.y }));
+    const mapTopic = (keyword: string) =>
+      historicalTimeScopeMessages
+        .filter((message) => message.topic.includes(keyword))
+        .map((message) => ({ time: formatTimestampTime(message.createAt), value: parseFloat(message.payload), id: message.id, x: message.x, y: message.y }));
 
     return {
       temperature: mapTopic('temp'),
       humidity: mapTopic('humidity'),
-      pressure: mapTopic('pressure')
+      pressure: mapTopic('pressure'),
     };
   }, [historicalTimeScopeMessages]);
 
-  // Dynamic Cache Mapping layout for multi-layer map quadrant boxes
   const preBinnedGridData = useMemo(() => {
     const zones = {
       [HeightZone.LOW]: new Map<string, { xGrid: number; yGrid: number; sourceLogs: MQTTMessage[]; hasWarning: boolean }>(),
@@ -224,32 +185,31 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
       [HeightZone.HIGH]: new Map<string, { xGrid: number; yGrid: number; sourceLogs: MQTTMessage[]; hasWarning: boolean }>(),
     };
 
-    historicalTimeScopeMessages.forEach((m) => {
-      const zone = getHeightZone(m.z);
-      // X/Y are in meters; bin into 0.5m cells.
-      const xGrid = Math.round(m.x * 2) / 2;
-      const yGrid = Math.round(m.y * 2) / 2;
+    historicalTimeScopeMessages.forEach((message) => {
+      const zone = getHeightZone(message.z);
+      const xGrid = Math.round(message.x * 2) / 2;
+      const yGrid = Math.round(message.y * 2) / 2;
       const key = `${xGrid}_${yGrid}`;
 
       const targetMap = zones[zone];
       if (!targetMap.has(key)) {
         targetMap.set(key, { xGrid, yGrid, sourceLogs: [], hasWarning: false });
       }
-      
+
       const entry = targetMap.get(key)!;
-      entry.sourceLogs.push(m);
-      if (checkWarning(m.topic, parseFloat(m.payload))) {
+      entry.sourceLogs.push(message);
+      if (checkWarning(message.topic, parseFloat(message.payload))) {
         entry.hasWarning = true;
       }
     });
 
-    const transform = (zoneKey: HeightZone) => 
-      Array.from(zones[zoneKey].values()).map(cell => ({
+    const transform = (zoneKey: HeightZone) =>
+      Array.from(zones[zoneKey].values()).map((cell) => ({
         x: cell.xGrid,
         y: cell.yGrid,
         count: cell.sourceLogs.length,
         hasWarning: cell.hasWarning,
-        rawMessage: cell.sourceLogs[cell.sourceLogs.length - 1]
+        rawMessage: cell.sourceLogs[cell.sourceLogs.length - 1],
       }));
 
     return {
@@ -259,12 +219,10 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     };
   }, [historicalTimeScopeMessages]);
 
-  // Real-time metrics lookup processing loop helper
   const realtimeMetrics = useMemo(() => {
     if (!latestValidMessage) return { temp: 'N/A', hum: 'N/A', pres: 'N/A', tempAlert: false, humAlert: false, presAlert: false };
-    
-    const getVal = (kw: string) => parseFloat(initialMessages.filter(m => m.topic.includes(kw)).pop()?.payload || '0');
-    
+
+    const getVal = (keyword: string) => parseFloat(dataset.messages.filter((message) => message.topic.includes(keyword)).pop()?.payload || '0');
     const temp = getVal('temp');
     const hum = getVal('humidity');
     const pres = getVal('pressure');
@@ -275,64 +233,17 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
       pres: pres.toFixed(1),
       tempAlert: checkWarning('temp', temp),
       humAlert: checkWarning('humidity', hum),
-      presAlert: checkWarning('pressure', pres)
+      presAlert: checkWarning('pressure', pres),
     };
-  }, [latestValidMessage, initialMessages]);
+  }, [dataset.messages, latestValidMessage]);
 
   const resetDataset = () => {
-    setLoadError(null);
     setDataset(defaultDataset);
     setSelectedDay(defaultViewState.defaultDay);
     setStartTimeMinutes(0);
     setEndTimeMinutes(defaultEndMinutesValue);
-    setSelectedMessage(latestValidMessage);
+    setSelectedMessage(defaultViewState.latestValidMessage);
     setActiveHeightFilter(defaultViewState.activeHeightFilter);
-  };
-
-  const loadJsonFile = async (file: File) => {
-    setLoadError(null);
-    setIsLoadingDataset(true);
-
-    try {
-      const fileText = await file.text();
-      const parsed = JSON.parse(fileText);
-      const extracted = normalizeTelemetryDataset(parsed, brokerHost, clientId);
-
-      if (!extracted.messages.length) {
-        throw new Error('No telemetry messages were found in the uploaded JSON file.');
-      }
-
-      const loadedDefaults = getDatasetDefaults(extracted.messages);
-
-      // Persist into Firestore: clear existing then load new messages for that clientId.
-      try {
-        await clearMessages(extracted.clientId);
-        await loadMessages(extracted.clientId, extracted.messages);
-      } catch (err) {
-        // If Firestore isn't configured or fails, fall back to loading locally.
-        console.warn('Firestore write failed, falling back to local dataset', err);
-        setDataset(extracted);
-      }
-
-      // Update local view state to the uploaded dataset while subscription updates arrive
-      setDataset((prev) => ({ ...prev, brokerHost: extracted.brokerHost, clientId: extracted.clientId, label: extracted.label, messages: extracted.messages }));
-      setSelectedDay(loadedDefaults.defaultDay);
-      setStartTimeMinutes(0);
-      setEndTimeMinutes(loadedDefaults.defaultEndMinutesValue);
-      setSelectedMessage(loadedDefaults.latestValidMessage);
-      setActiveHeightFilter(loadedDefaults.activeHeightFilter);
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Failed to load JSON file.');
-    } finally {
-      setIsLoadingDataset(false);
-    }
-  };
-
-  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    void loadJsonFile(file);
-    event.target.value = '';
   };
 
   const handleTimeRangeChange = (start: number, end: number) => {
@@ -354,23 +265,6 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans relative">
-      {isLoadingDataset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 backdrop-blur-sm">
-          <div className="w-[min(92vw,32rem)] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Loading dashboard data</p>
-                <p className="text-xs text-slate-500">Parsing the JSON file and rebuilding all views.</p>
-              </div>
-            </div>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-linear-to-r from-blue-500 via-cyan-400 to-emerald-400" />
-            </div>
-          </div>
-        </div>
-      )}
-
       <header className="bg-white border-b border-slate-100 sticky top-0 z-10 px-8 py-3.5 flex justify-between items-center gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">MiR-Eco Telemetry Dashboard</h1>
@@ -381,35 +275,18 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleFileInputChange} />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
-          >
-            <Upload size={14} />
-            Load JSON
-          </button>
           <button
             type="button"
             onClick={resetDataset}
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
           >
-            <RotateCcw size={14} />
-            Default JSON
+            Reset Snapshot
           </button>
           <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 text-xs font-medium rounded-full inline-flex items-center gap-2">
-            <FileJson size={14} />
             {dataset.brokerHost}
           </div>
         </div>
       </header>
-
-      {loadError && (
-        <div className="mx-8 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {loadError}
-        </div>
-      )}
 
       {/* Tab Navigation */}
       <nav className="bg-white border-b border-slate-100 px-8">
@@ -434,7 +311,6 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
         </div>
       </nav>
 
-      {/* Made gaps tighter using space-y-4 instead of space-y-6 */}
       <main className="p-6 mx-auto space-y-4 max-w-7xl">
         {activeTab === 'pca' ? (
           <PCABiplot messages={dataset.messages} />
@@ -443,68 +319,67 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
         ) : activeTab === 'kriging' ? (
           <KrigingAnalysis messages={dataset.messages} />
         ) : (
-        <>
-        {/* Real-time Metric Banners (Made padding smaller using p-3.5) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {statusCards.map((card) => (
-            <div
-              key={card.label}
-              className={`bg-white p-3.5 rounded-xl border shadow-sm transition-all ${card.alert ? 'border-red-200 bg-red-50/40' : 'border-slate-100'}`}
-            >
-              <div className="flex justify-between items-center">
-                <p className="text-[10px] text-slate-400 font-semibold uppercase">{card.label}</p>
-                {card.alert && <AlertTriangle size={13} className="text-red-500 animate-pulse" />}
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {statusCards.map((card) => (
+                <div
+                  key={card.label}
+                  className={`bg-white p-3.5 rounded-xl border shadow-sm transition-all ${card.alert ? 'border-red-200 bg-red-50/40' : 'border-slate-100'}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase">{card.label}</p>
+                    {card.alert && <AlertTriangle size={13} className="text-red-500 animate-pulse" />}
+                  </div>
+                  <h2 className={`text-base font-bold mt-0.5 ${card.alert ? 'text-red-600' : 'text-slate-900'}`}>{card.value}</h2>
+                </div>
+              ))}
+
+              <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Sector</p>
+                <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
+                  X:{latestSector?.x ?? 0} Y:{latestSector?.y ?? 0}
+                </h2>
               </div>
-              <h2 className={`text-base font-bold mt-0.5 ${card.alert ? 'text-red-600' : 'text-slate-900'}`}>{card.value}</h2>
+
+              <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Robot Position</p>
+                <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
+                  ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, {latestRobotPosition?.zValue ?? 0})
+                </h2>
+                <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">
+                  {latestRobotPosition ? `${latestRobotPosition.zLabel} height` : 'No position available'}
+                </p>
+              </div>
             </div>
-          ))}
 
-          <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Sector</p>
-            <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
-              X:{latestSector?.x ?? 0} Y:{latestSector?.y ?? 0}
-            </h2>
-          </div>
+            <TimePlaybackController
+              availableDays={availableDays}
+              selectedDay={selectedDay}
+              onDayChange={setSelectedDay}
+              startTime={startTimeMinutes}
+              endTime={endTimeMinutes}
+              onTimeRangeChange={handleTimeRangeChange}
+              onResetToLive={handleResetToLive}
+              isLive={isLive}
+            />
 
-          <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Robot Position</p>
-            <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
-              ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, {latestRobotPosition?.zValue ?? 0})
-            </h2>
-            <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">
-              {latestRobotPosition?.zLabel ?? 'Low (0 mm)'}
-            </p>
-          </div>
-        </div>
-
-        <TimePlaybackController 
-          availableDays={availableDays}
-          selectedDay={selectedDay}
-          onDayChange={setSelectedDay}
-          startTime={startTimeMinutes}
-          endTime={endTimeMinutes}
-          onTimeRangeChange={handleTimeRangeChange}
-          onResetToLive={handleResetToLive}
-          isLive={isLive}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <MetricChart 
-            temperatureData={timelines.temperature} 
-            humidityData={timelines.humidity} 
-            pressureData={timelines.pressure}
-            selectedMessage={selectedMessageForViews}
-          />
-          <SpatialMap 
-            binnedData={preBinnedGridData[activeHeightFilter]}
-            selectedMessage={selectedMessageForViews}
-            latestMessage={latestValidMessage}
-            activeFilter={activeHeightFilter}
-            onFilterChange={setActiveHeightFilter}
-            onSelectMessage={setSelectedMessage}
-          />
-        </div>
-        </>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <MetricChart
+                temperatureData={timelines.temperature}
+                humidityData={timelines.humidity}
+                pressureData={timelines.pressure}
+                selectedMessage={selectedMessageForViews}
+              />
+              <SpatialMap
+                binnedData={preBinnedGridData[activeHeightFilter]}
+                selectedMessage={selectedMessageForViews}
+                latestMessage={latestValidMessage}
+                activeFilter={activeHeightFilter}
+                onFilterChange={setActiveHeightFilter}
+                onSelectMessage={setSelectedMessage}
+              />
+            </div>
+          </>
         )}
       </main>
     </div>

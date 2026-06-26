@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceDot } from 'recharts';
 import { Activity, Droplets, Gauge, MapPin } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
@@ -32,12 +32,7 @@ const StatBadge = ({ icon, label, value, border }: { icon: React.ReactNode, labe
 );
 
 export default function MetricChart({ temperatureData, humidityData, pressureData, selectedMessage }: MetricChartProps) {
-  const [isMounted, setIsMounted] = useState(false);
   const [chartScope, setChartScope] = useState<'all' | 'local'>('local');
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // 2. Memoize bounding geometry properties
   const selectedSectorCenter = useMemo(() => {
@@ -102,7 +97,7 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
   }, [unifiedData, selectedMessage]);
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between h-full min-h-120">
+    <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between h-full min-h-120 min-w-0">
       <div className="space-y-4">
         {/* Metric Chart Toolbar Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-b-slate-100 pb-4">
@@ -158,40 +153,34 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
       </div>
 
       {/* Visual Chart Frame Layout */}
-      <div className="w-full flex-1 h-77.5 mt-4">
-        {!isMounted ? (
-          <div className="h-full min-h-77.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-            Loading chart...
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={unifiedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-            <defs>
-              {[['tempGradient', '#f59e0b'], ['humidityGradient', '#0ea5e9'], ['pressureGradient', '#8b5cf6']].map(([id, color]) => (
-                <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} />
-            <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} tickLine={false} domain={['auto', 'auto']} />
-            <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickLine={false} domain={['auto', 'auto']} />
-            
-            <Tooltip contentStyle={{ borderRadius: '8px', borderColor: '#f1f5f9', fontSize: '11px' }} />
-            <Legend verticalAlign="top" height={32} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
-            
-            <Area yAxisId="left" name="Temperature (°C)" type="monotone" dataKey="Temperature" stroke="#f59e0b" strokeWidth={2} fill="url(#tempGradient)" connectNulls />
-            <Area yAxisId="left" name="Humidity (%)" type="monotone" dataKey="Humidity" stroke="#0ea5e9" strokeWidth={2} fill="url(#humidityGradient)" connectNulls />
-            <Area yAxisId="right" name="Pressure (hPa)" type="monotone" dataKey="Pressure" stroke="#8b5cf6" strokeWidth={2} fill="url(#pressureGradient)" connectNulls />
+      <div className="w-full flex-1 h-88 mt-4 min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={unifiedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+          <defs>
+            {[['tempGradient', '#f59e0b'], ['humidityGradient', '#0ea5e9'], ['pressureGradient', '#8b5cf6']].map(([id, color]) => (
+              <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.15}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+          <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} />
+          <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} tickLine={false} domain={['auto', 'auto']} />
+          <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickLine={false} domain={['auto', 'auto']} />
+          
+          <Tooltip contentStyle={{ borderRadius: '8px', borderColor: '#f1f5f9', fontSize: '11px' }} />
+          <Legend verticalAlign="top" height={32} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+          
+          <Area yAxisId="left" name="Temperature (°C)" type="monotone" dataKey="Temperature" stroke="#f59e0b" strokeWidth={2} fill="url(#tempGradient)" connectNulls />
+          <Area yAxisId="left" name="Humidity (%)" type="monotone" dataKey="Humidity" stroke="#0ea5e9" strokeWidth={2} fill="url(#humidityGradient)" connectNulls />
+          <Area yAxisId="right" name="Pressure (hPa)" type="monotone" dataKey="Pressure" stroke="#8b5cf6" strokeWidth={2} fill="url(#pressureGradient)" connectNulls />
 
-            {selectedPoint?.Temperature !== undefined && (
-              <ReferenceDot yAxisId="left" x={selectedPoint.time} y={selectedPoint.Temperature} r={5} fill="#d97706" stroke="#ffffff" strokeWidth={2} />
-            )}
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
+          {selectedPoint?.Temperature !== undefined && (
+            <ReferenceDot yAxisId="left" x={selectedPoint.time} y={selectedPoint.Temperature} r={5} fill="#d97706" stroke="#ffffff" strokeWidth={2} />
+          )}
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
