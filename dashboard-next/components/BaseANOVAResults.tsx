@@ -7,6 +7,11 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
 import { computeANOVA } from '../lib/anova';
 
+interface HypothesisDetails {
+  formula: string;
+  meaning: string;
+}
+
 interface MetricConfig {
   key: 'temperature' | 'humidity';
   label: string;
@@ -14,8 +19,8 @@ interface MetricConfig {
   barColor: string;
   getConclusion: (val: number, isSignificant: boolean) => string;
   chartMinMaxPadding: number;
-  nullHypothesis: string;
-  altHypothesis: string;
+  nullHypothesis: HypothesisDetails; // Fixed type from string to HypothesisDetails
+  altHypothesis: HypothesisDetails;  // Fixed type from string to HypothesisDetails
   description: string;
   hypothesisTitle: string;
   bannerBg: string;
@@ -59,11 +64,10 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
       return z;
     };
 
-    // Construct common flat array shape required by computeANOVA
     const observations = Array.from(groups.values())
       .filter((g) => g.values.length > 0)
       .map((g) => ({
-        temperature: avg(g.values), // Matches internal execution key constraints of legacy lib functions
+        temperature: avg(g.values), 
         zone: formatZone(g.z),
       }));
 
@@ -92,47 +96,47 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
   return (
     <div className="space-y-6">
       {/* Dynamic Hypothesis Card */}
-<div className={`${config.bannerBg} border ${config.bannerBorder} rounded-xl p-5 shadow-sm`}>
-  <div className="flex flex-col gap-1.5">
-    <span className={`text-[10px] uppercase font-bold tracking-wider ${config.bannerText} opacity-70`}>
-      One-Way ANOVA Framework
-    </span>
-    <h3 className={`font-bold ${config.bannerText} text-base`}>
-      {config.hypothesisTitle}
-    </h3>
-  </div>
-  <p className="text-sm text-slate-700 font-medium mt-2 max-w-3xl leading-relaxed">
-    {config.description}
-  </p>
-  
-  <div className="mt-4 pt-3.5 border-t border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-slate-100 flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Null Hypothesis</span>
-        <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-800">H₀</span>
-      </div>
-      <div className="text-sm font-black font-mono text-slate-900 my-0.5 tracking-wide">
-        {config.nullHypothesis.formula}
-      </div>
-      <div className="text-xs text-slate-600 leading-normal font-medium">
-        {config.nullHypothesis.meaning}
-      </div>
-    </div>
+      <div className={`${config.bannerBg} border ${config.bannerBorder} rounded-xl p-5 shadow-sm`}>
+        <div className="flex flex-col gap-1.5">
+          <span className={`text-[10px] uppercase font-bold tracking-wider ${config.bannerText} opacity-70`}>
+            One-Way ANOVA Framework
+          </span>
+          <h3 className={`font-bold ${config.bannerText} text-base`}>
+            {config.hypothesisTitle}
+          </h3>
+        </div>
+        <p className="text-sm text-slate-700 font-medium mt-2 max-w-3xl leading-relaxed">
+          {config.description}
+        </p>
+        
+        <div className="mt-4 pt-3.5 border-t border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-slate-100 flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Null Hypothesis</span>
+              <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-800">H₀</span>
+            </div>
+            <div className="text-sm font-black font-mono text-slate-900 my-0.5 tracking-wide">
+              {config.nullHypothesis.formula}
+            </div>
+            <div className="text-xs text-slate-600 leading-normal font-medium">
+              {config.nullHypothesis.meaning}
+            </div>
+          </div>
 
-    <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-slate-100 flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alternative Hypothesis</span>
-        <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">H₁</span>
+          <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-slate-100 flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alternative Hypothesis</span>
+              <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">H₁</span>
+            </div>
+            <div className="text-sm font-black font-mono text-slate-900 my-0.5 tracking-wide">
+              {config.altHypothesis.formula}
+            </div>
+            <div className="text-xs text-slate-600 leading-normal font-medium">
+              {config.altHypothesis.meaning}
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="text-sm font-black font-mono text-slate-900 my-0.5 tracking-wide">
-        {config.altHypothesis.formula}
-      </div>
-      <div className="text-xs text-slate-600 leading-normal font-medium">
-        {config.altHypothesis.meaning}
-      </div>
-    </div>
-  </div>
-</div>
 
       {/* Test Verdict Statement */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
@@ -182,11 +186,15 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="zone" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis domain={[`dataMin - ${config.chartMinMaxPadding}`, `dataMax + ${config.chartMinMaxPadding}`]} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip
+                <Tooltip
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgb(0 0 0 / 0.05)' }}
-                formatter={(value: number) => [`${value} ${config.unit}`, `Mean ${config.label}`]}
-              />
+                formatter={(value: any) => {
+                    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+                    const formattedValue = Number.isFinite(numValue) ? numValue.toFixed(2) : '0.00';
+                    return [`${formattedValue} ${config.unit}`, `Mean ${config.label}`];
+                }}
+                />
               <Bar dataKey={config.label} fill={config.barColor} radius={[4, 4, 0, 0]} maxBarSize={50} />
             </BarChart>
           </ResponsiveContainer>
@@ -226,14 +234,16 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
           </table>
         </div>
       </div>
-        <div className={`${isSignificant ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'} border rounded-xl p-4 shadow-sm`}>
-            <h3 className={`font-semibold ${isSignificant ? 'text-emerald-900' : 'text-slate-900'} text-sm mb-1.5`}>
-                Conclusion
-            </h3>
-            <p className={`text-xs ${isSignificant ? 'text-emerald-800' : 'text-slate-700'} leading-relaxed font-medium`}>
-                {config.getConclusion(anovaResult.pValue, isSignificant)}
-            </p>
-        </div>
+
+      {/* Conclusion Banner */}
+      <div className={`${isSignificant ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'} border rounded-xl p-4 shadow-sm`}>
+        <h3 className={`font-semibold ${isSignificant ? 'text-emerald-900' : 'text-slate-900'} text-sm mb-1.5`}>
+          Conclusion
+        </h3>
+        <p className={`text-xs ${isSignificant ? 'text-emerald-800' : 'text-slate-700'} leading-relaxed font-medium`}>
+          {config.getConclusion(anovaResult.pValue, isSignificant)}
+        </p>
+      </div>
     </div>
   );
 }

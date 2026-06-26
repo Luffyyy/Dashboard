@@ -407,7 +407,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
               <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
                 <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Robot Position</p>
                 <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
-                  ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, "{latestRobotPosition?.zValue ?? ''}")
+                  ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, &quot;{latestRobotPosition?.zValue ?? ''}&quot;)
                 </h2>
                 <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">
                   {latestRobotPosition ? `${latestRobotPosition.zLabel.toUpperCase()} height zone` : 'No position available'}
