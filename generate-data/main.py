@@ -88,8 +88,8 @@ def main():
                 
         new_messages = []
         x, y = 0.0, 0.0
-        max_x = 10.0 # Wrap grid after 10 meters 
-        max_y = 10.0 # Bound room length to 10 meters
+        max_x = 10 # Wrap grid after 10 meters 
+        max_y = 10 # Bound room length to 10 meters
         
         # 4. Generate the new interpolated routine sequence
         for group in groups:
@@ -108,15 +108,15 @@ def main():
                     # Update internal IDs and Timestamps
                     new_msg['id'] = generate_uuid()
                     new_msg['createAt'] = format_time(current_time)
-                    if 'properties' in new_msg:
-                        new_msg['properties']['id'] = new_msg['id']
-                        new_msg['properties']['createAt'] = new_msg['createAt']
-                        
+                    # if 'properties' in new_msg: 
+                    #     new_msg['properties']['id'] = new_msg['id']
+                    #     new_msg['properties']['createAt'] = new_msg['createAt']
+                    del new_msg['properties']
                     # Shift the payload slightly for intermediate & high levels
                     if i > 0:
                         new_msg['payload'] = apply_variation(new_msg['topic'], new_msg['payload'])
-                        if 'properties' in new_msg:
-                            new_msg['properties']['payload'] = new_msg['payload']
+                        # if 'properties' in new_msg:
+                        #     new_msg['properties']['payload'] = new_msg['payload']
                             
                     # Inject the new position properties straight into the original structure
                     new_msg['x'] = x
