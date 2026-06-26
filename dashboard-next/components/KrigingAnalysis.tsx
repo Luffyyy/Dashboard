@@ -1,3 +1,7 @@
+/**
+ * משאיר את זה לחברה שעושים פרויקט, לא רלוונטי יותר אלינו
+ */
+
 'use client';
 
 import React, { useMemo } from 'react';

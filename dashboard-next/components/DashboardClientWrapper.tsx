@@ -1,22 +1,23 @@
+// components/DashboardClientWrapper.tsx
 "use client";
-import React, { useMemo, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { AlertTriangle, Upload } from 'lucide-react';
 import SpatialMap from './SpatialMap';
 import MetricChart from './MetricChart';
 import TimePlaybackController from './TimePlaybackController';
 import PCABiplot from './PCABiplot';
-import MANOVAResults from './MANOVAResults';
-import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
+import VerticalStratificationTabs from './VerticalStratificationTabs';
 
 export interface MQTTMessage {
   id: string;
   createAt: string;
-  payload: string;
   x: number;
   y: number;
-  z: number;
-  topic: string;
+  z: string;
+  temperature?: string;
+  humidity?: string;
+  pressure?: string;
 }
 
 interface WrapperProps {
@@ -27,27 +28,28 @@ interface WrapperProps {
 }
 
 export enum HeightZone {
-  LOW = 'Low',
-  INTERMEDIATE = 'Intermediate',
-  HIGH = 'High',
+  LOW = 'low',
+  INTERMEDIATE = 'intermediate',
+  HIGH = 'high',
 }
 
-function getHeightZone(z: number | string): HeightZone {
-  if (typeof z === 'string') {
-    const lowered = z.toLowerCase();
-    if (lowered.includes('low')) return HeightZone.LOW;
-    if (lowered.includes('inter')) return HeightZone.INTERMEDIATE;
-    if (lowered.includes('high')) return HeightZone.HIGH;
-    return HeightZone.INTERMEDIATE;
-  }
+function checkWarning(type: 'temp' | 'humidity' | 'pressure', valStr: string | undefined): boolean {
+  if (!valStr || valStr === "") return false;
+  const val = parseFloat(valStr);
+  if (!Number.isFinite(val)) return false;
 
-  if (typeof z === 'number') {
-    if (z <= 0.3) return HeightZone.LOW;
-    if (z <= 0.6) return HeightZone.INTERMEDIATE;
-    return HeightZone.HIGH;
-  }
+  if (type === 'temp' && val > 25.0) return true;
+  if (type === 'humidity' && (val < 40.0 || val > 75.0)) return true;
+  if (type === 'pressure' && (val < 950.0 || val > 1050.0)) return true;
+  return false;
+}
 
-  return HeightZone.INTERMEDIATE;
+function getSectorCenter(message: MQTTMessage | null) {
+  if (!message) return null;
+  return {
+    x: Math.round(message.x * 2) / 2,
+    y: Math.round(message.y * 2) / 2,
+  };
 }
 
 function getDatasetDefaults(messages: MQTTMessage[]) {
@@ -77,22 +79,7 @@ function getDatasetDefaults(messages: MQTTMessage[]) {
     latestValidMessage,
     defaultDay,
     defaultEndMinutesValue,
-    activeHeightFilter: latestValidMessage ? getHeightZone(latestValidMessage.z) : HeightZone.INTERMEDIATE,
-  };
-}
-
-function checkWarning(topic: string, val: number): boolean {
-  if (topic.includes('temp') && val > 25.0) return true;
-  if (topic.includes('humidity') && (val < 40.0 || val > 75.0)) return true;
-  if (topic.includes('pressure') && (val < 950.0 || val > 1050.0)) return true;
-  return false;
-}
-
-function getSectorCenter(message: MQTTMessage | null) {
-  if (!message) return null;
-  return {
-    x: Math.round(message.x * 2) / 2,
-    y: Math.round(message.y * 2) / 2,
+    activeHeightFilter: latestValidMessage ? (latestValidMessage.z as HeightZone) : HeightZone.INTERMEDIATE,
   };
 }
 
@@ -108,24 +95,26 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   );
 
   const [dataset, setDataset] = useState(defaultDataset);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const defaultViewState = useMemo(() => getDatasetDefaults(defaultDataset.messages), [defaultDataset.messages]);
-  const latestValidMessage = useMemo(() => getDatasetDefaults(dataset.messages).latestValidMessage, [dataset.messages]);
+  const currentDatasetDefaults = useMemo(() => getDatasetDefaults(dataset.messages), [dataset.messages]);
+  
+  const latestValidMessage = currentDatasetDefaults.latestValidMessage;
   const availableDays = useMemo(() => {
     const days = new Set<string>();
     dataset.messages.forEach((message) => days.add(formatTimestampDay(message.createAt)));
     return Array.from(days).sort();
   }, [dataset.messages]);
 
-  const defaultDay = defaultViewState.defaultDay;
-  const defaultEndMinutesValue = defaultViewState.defaultEndMinutesValue;
+  const defaultDay = currentDatasetDefaults.defaultDay;
+  const defaultEndMinutesValue = currentDatasetDefaults.defaultEndMinutesValue;
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'manova' | 'kriging'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pca' | 'anova'>('dashboard');
   const [selectedDay, setSelectedDay] = useState<string>(defaultDay);
   const [startTimeMinutes, setStartTimeMinutes] = useState<number>(0);
   const [endTimeMinutes, setEndTimeMinutes] = useState<number>(defaultEndMinutesValue);
   const [selectedMessage, setSelectedMessage] = useState<MQTTMessage | null>(latestValidMessage);
-  const [activeHeightFilter, setActiveHeightFilter] = useState<HeightZone>(defaultViewState.activeHeightFilter);
+  const [activeHeightFilter, setActiveHeightFilter] = useState<HeightZone>(currentDatasetDefaults.activeHeightFilter);
 
   const isLive = selectedDay === defaultDay && endTimeMinutes >= defaultEndMinutesValue && startTimeMinutes === 0;
   const latestSector = useMemo(() => getSectorCenter(latestValidMessage), [latestValidMessage]);
@@ -135,7 +124,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     return {
       x: latestValidMessage.x,
       y: latestValidMessage.y,
-      zLabel: getHeightZone(latestValidMessage.z),
+      zLabel: latestValidMessage.z,
       zValue: latestValidMessage.z,
     };
   }, [latestValidMessage]);
@@ -166,17 +155,19 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   }, [historicalTimeScopeMessages, latestValidMessage, selectedMessage]);
 
   const timelines = useMemo(() => {
-    const mapTopic = (keyword: string) =>
-      historicalTimeScopeMessages
-        .filter((message) => message.topic.includes(keyword))
-        .map((message) => ({ time: formatTimestampTime(message.createAt), value: parseFloat(message.payload), id: message.id, x: message.x, y: message.y }));
+    const time = (msg: MQTTMessage) => formatTimestampTime(msg.createAt);
+    const parsed = (v: string | undefined) => v ? parseFloat(v) : 0;
+
+    const heightScopedMessages = historicalTimeScopeMessages.filter(
+      (m) => m.z === activeHeightFilter
+    );
 
     return {
-      temperature: mapTopic('temp'),
-      humidity: mapTopic('humidity'),
-      pressure: mapTopic('pressure'),
+      temperature: heightScopedMessages.filter(m => m.temperature).map(m => ({ time: time(m), value: parsed(m.temperature), id: m.id, x: m.x, y: m.y })),
+      humidity: heightScopedMessages.filter(m => m.humidity).map(m => ({ time: time(m), value: parsed(m.humidity), id: m.id, x: m.x, y: m.y })),
+      pressure: heightScopedMessages.filter(m => m.pressure).map(m => ({ time: time(m), value: parsed(m.pressure), id: m.id, x: m.x, y: m.y })),
     };
-  }, [historicalTimeScopeMessages]);
+  }, [historicalTimeScopeMessages, activeHeightFilter]);
 
   const preBinnedGridData = useMemo(() => {
     const zones = {
@@ -186,7 +177,9 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     };
 
     historicalTimeScopeMessages.forEach((message) => {
-      const zone = getHeightZone(message.z);
+      const zone = message.z as HeightZone;
+      if (!zones[zone]) return;
+
       const xGrid = Math.round(message.x * 2) / 2;
       const yGrid = Math.round(message.y * 2) / 2;
       const key = `${xGrid}_${yGrid}`;
@@ -198,7 +191,12 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
 
       const entry = targetMap.get(key)!;
       entry.sourceLogs.push(message);
-      if (checkWarning(message.topic, parseFloat(message.payload))) {
+      
+      if (
+        checkWarning('temp', message.temperature) ||
+        checkWarning('humidity', message.humidity) ||
+        checkWarning('pressure', message.pressure)
+      ) {
         entry.hasWarning = true;
       }
     });
@@ -222,28 +220,76 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   const realtimeMetrics = useMemo(() => {
     if (!latestValidMessage) return { temp: 'N/A', hum: 'N/A', pres: 'N/A', tempAlert: false, humAlert: false, presAlert: false };
 
-    const getVal = (keyword: string) => parseFloat(dataset.messages.filter((message) => message.topic.includes(keyword)).pop()?.payload || '0');
-    const temp = getVal('temp');
-    const hum = getVal('humidity');
-    const pres = getVal('pressure');
+    const lastTempMsg = dataset.messages.filter((m) => m.temperature).pop();
+    const lastHumMsg = dataset.messages.filter((m) => m.humidity).pop();
+    const lastPresMsg = dataset.messages.filter((m) => m.pressure).pop();
+
+    const temp = lastTempMsg ? parseFloat(lastTempMsg.temperature!) : 0;
+    const hum = lastHumMsg ? parseFloat(lastHumMsg.humidity!) : 0;
+    const pres = lastPresMsg ? parseFloat(lastPresMsg.pressure!) : 0;
 
     return {
-      temp: temp.toFixed(2),
-      hum: hum.toFixed(2),
-      pres: pres.toFixed(1),
-      tempAlert: checkWarning('temp', temp),
-      humAlert: checkWarning('humidity', hum),
-      presAlert: checkWarning('pressure', pres),
+      temp: lastTempMsg ? temp.toFixed(2) : 'N/A',
+      hum: lastHumMsg ? hum.toFixed(2) : 'N/A',
+      pres: lastPresMsg ? pres.toFixed(1) : 'N/A',
+      tempAlert: checkWarning('temp', lastTempMsg?.temperature),
+      humAlert: checkWarning('humidity', lastHumMsg?.humidity),
+      presAlert: checkWarning('pressure', lastPresMsg?.pressure),
     };
   }, [dataset.messages, latestValidMessage]);
 
   const resetDataset = () => {
     setDataset(defaultDataset);
-    setSelectedDay(defaultViewState.defaultDay);
+    const defaults = getDatasetDefaults(defaultDataset.messages);
+    setSelectedDay(defaults.defaultDay);
     setStartTimeMinutes(0);
-    setEndTimeMinutes(defaultEndMinutesValue);
-    setSelectedMessage(defaultViewState.latestValidMessage);
-    setActiveHeightFilter(defaultViewState.activeHeightFilter);
+    setEndTimeMinutes(defaults.defaultEndMinutesValue);
+    setSelectedMessage(defaults.latestValidMessage);
+    setActiveHeightFilter(defaults.activeHeightFilter);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        
+        // Handles both structural connection collection payload arrays or raw arrays
+        const targetConnection = Array.isArray(json) ? json[0] : json;
+        let importedMessages = [];
+        
+        if (targetConnection && Array.isArray(targetConnection.messages)) {
+          importedMessages = targetConnection.messages;
+        } else if (Array.isArray(json)) {
+          importedMessages = json;
+        } else if (json.messages) {
+          importedMessages = json.messages;
+        }
+
+        const nextDataset = {
+          messages: importedMessages,
+          brokerHost: targetConnection?.host || 'Imported File',
+          clientId: targetConnection?.clientId || file.name,
+          label: targetConnection?.name || file.name,
+        };
+
+        const defaults = getDatasetDefaults(importedMessages);
+        
+        setDataset(nextDataset);
+        setSelectedDay(defaults.defaultDay);
+        setStartTimeMinutes(0);
+        setEndTimeMinutes(defaults.defaultEndMinutesValue);
+        setSelectedMessage(defaults.latestValidMessage);
+        setActiveHeightFilter(defaults.activeHeightFilter);
+      } catch (err) {
+        alert('Failed to parse telemetry file structure.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleTimeRangeChange = (start: number, end: number) => {
@@ -258,10 +304,14 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   };
 
   const statusCards = [
-    { label: 'Latest Realtime Temp', value: `${realtimeMetrics.temp} °C`, alert: realtimeMetrics.tempAlert },
-    { label: 'Latest Realtime Humidity', value: `${realtimeMetrics.hum} %`, alert: realtimeMetrics.humAlert },
-    { label: 'Latest Realtime Barometer', value: `${realtimeMetrics.pres} hPa`, alert: realtimeMetrics.presAlert },
+    { label: 'Latest Realtime Temp', value: lastRealtimeVal(realtimeMetrics.temp, '°C'), alert: realtimeMetrics.tempAlert },
+    { label: 'Latest Realtime Humidity', value: lastRealtimeVal(realtimeMetrics.hum, '%'), alert: realtimeMetrics.humAlert },
+    { label: 'Latest Realtime Barometer', value: lastRealtimeVal(realtimeMetrics.pres, 'hPa'), alert: realtimeMetrics.presAlert },
   ];
+
+  function lastRealtimeVal(val: string, suffix: string) {
+    return val === 'N/A' ? 'N/A' : `${val} ${suffix}`;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans relative">
@@ -275,6 +325,22 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".json"
+            className="hidden" 
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+          >
+            <Upload size={12} className="text-slate-500" />
+            Load JSON
+          </button>
+          
           <button
             type="button"
             onClick={resetDataset}
@@ -294,8 +360,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
           {([
             { id: 'dashboard', label: 'Live Dashboard' },
             { id: 'pca', label: 'PCA Biplot' },
-            { id: 'manova', label: 'Hypothesis 1 Analysis' },
-            { id: 'kriging', label: 'Hypothesis 2 Analysis' },
+            { id: 'anova', label: 'Analysis' },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -314,10 +379,8 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
       <main className="p-6 mx-auto space-y-4 max-w-7xl">
         {activeTab === 'pca' ? (
           <PCABiplot messages={dataset.messages} />
-        ) : activeTab === 'manova' ? (
-          <MANOVAResults messages={dataset.messages} />
-        ) : activeTab === 'kriging' ? (
-          <KrigingAnalysis messages={dataset.messages} />
+        ) : activeTab === 'anova' ? (
+          <VerticalStratificationTabs messages={dataset.messages} />
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -344,10 +407,10 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
               <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
                 <p className="text-[10px] text-slate-400 font-semibold uppercase">Latest Robot Position</p>
                 <h2 className="text-base font-bold text-slate-900 font-mono mt-0.5">
-                  ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, {latestRobotPosition?.zValue ?? 0})
+                  ({latestRobotPosition?.x ?? 0}, {latestRobotPosition?.y ?? 0}, "{latestRobotPosition?.zValue ?? ''}")
                 </h2>
                 <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">
-                  {latestRobotPosition ? `${latestRobotPosition.zLabel} height` : 'No position available'}
+                  {latestRobotPosition ? `${latestRobotPosition.zLabel.toUpperCase()} height zone` : 'No position available'}
                 </p>
               </div>
             </div>

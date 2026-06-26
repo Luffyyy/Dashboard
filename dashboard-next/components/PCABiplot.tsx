@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -20,22 +20,23 @@ interface PCABiplotProps {
   messages: MQTTMessage[];
 }
 
-// Self-contained height zone helpers to avoid a circular module dependency with DashboardClientWrapper.
-const ZONE_LOW = 'Low (0-0.3 m)';
-const ZONE_INTERMEDIATE = 'Intermediate (0.3-0.6 m)';
-const ZONE_HIGH = 'High (0.6 m+)';
+// Configurable clustering spatial grid resolution (in meters)
+const CLUSTER_SIZE = 2;
 
-function zoneFromZ(z: number): string {
-  if (z <= 0.3) return ZONE_LOW;
-  if (z <= 0.6) return ZONE_INTERMEDIATE;
-  return ZONE_HIGH;
-}
+// Uniform lowercase keys matching clean normalizer tokens
+const ZONE_LOW = 'low';
+const ZONE_INTERMEDIATE = 'intermediate';
+const ZONE_HIGH = 'high';
 
-// Color per height zone, reusing the dashboard palette language
+// Human-readable labels used consistently for the chart scores and filtering
+const DISPLAY_LOW = 'Low (0-0.3 m)';
+const DISPLAY_INTERMEDIATE = 'Intermediate (0.3-0.6 m)';
+const DISPLAY_HIGH = 'High (0.6 m+)';
+
 const ZONE_COLORS: Record<string, string> = {
-  [ZONE_LOW]: '#0ea5e9',
-  [ZONE_INTERMEDIATE]: '#6366f1',
-  [ZONE_HIGH]: '#f43f5e',
+  [DISPLAY_LOW]: '#0ea5e9',
+  [DISPLAY_INTERMEDIATE]: '#6366f1',
+  [DISPLAY_HIGH]: '#f43f5e',
 };
 
 const VARIABLE_COLORS: Record<string, string> = {
@@ -44,35 +45,45 @@ const VARIABLE_COLORS: Record<string, string> = {
   Pressure: '#8b5cf6',
 };
 
-const LOADING_SCALE = 3; // scale unit loadings into the score coordinate space for visibility
-
-function classifyKind(topic: string): 't' | 'h' | 'p' | null {
-  if (topic.includes('humidity')) return 'h';
-  if (topic.includes('pressure')) return 'p';
-  if (topic.includes('temp')) return 't';
-  return null;
-}
+const LOADING_SCALE = 3;
 
 export default function PCABiplot({ messages }: PCABiplotProps) {
-  // Build co-located, simultaneous (T,H,P) observations by binning into 0.5m sectors and per-minute buckets.
+  // Use the exact options array for the pill toggles
+  const [activeZone, setActiveZone] = useState<string>('All');
+
+  // Build co-located, simultaneous (T,H,P) observations clustered by custom spatial bins and minute chunks
   const observations = useMemo<PCAObservation[]>(() => {
-    const groups = new Map<string, { t: number[]; h: number[]; p: number[]; z: number }>();
+    const groups = new Map<string, { t: number[]; h: number[]; p: number[]; z: string }>();
+    const minute = (t: string) => t.slice(0, 16);
 
     for (const msg of messages) {
-      const kind = classifyKind(msg.topic);
-      if (!kind) continue;
-      const value = parseFloat(msg.payload);
-      if (!Number.isFinite(value)) continue;
+      if (!msg.temperature || !msg.humidity || !msg.pressure) continue;
 
-      const xGrid = Math.round(msg.x * 2) / 2;
-      const yGrid = Math.round(msg.y * 2) / 2;
-      const minuteBucket = (msg.createAt || '').slice(0, 16);
-      const key = `${xGrid}_${yGrid}_${minuteBucket}`;
+      const tVal = parseFloat(msg.temperature);
+      const hVal = parseFloat(msg.humidity);
+      const pVal = parseFloat(msg.pressure);
 
-      if (!groups.has(key)) groups.set(key, { t: [], h: [], p: [], z: msg.z });
+      if (!Number.isFinite(tVal) || !Number.isFinite(hVal) || !Number.isFinite(pVal)) continue;
+
+      // CLUSTERING OPTIMIZATION: Cluster neighboring points into a shared index bin 
+      // by dividing by the cluster size, flooring, and scaling back.
+      const xCluster = Math.floor(msg.x / CLUSTER_SIZE) * CLUSTER_SIZE + (CLUSTER_SIZE / 2);
+      const yCluster = Math.floor(msg.y / CLUSTER_SIZE) * CLUSTER_SIZE + (CLUSTER_SIZE / 2);
+      
+      const rawZone = typeof msg.z === 'string' ? msg.z.trim().toLowerCase() : 'intermediate';
+      const timeBucket = minute(msg.createAt || '');
+
+      // Compound key matching coordinates clustering, time context, and height layer
+      const key = `${xCluster.toFixed(2)}_${yCluster.toFixed(2)}_${timeBucket}_${rawZone}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, { t: [], h: [], p: [], z: rawZone });
+      }
+      
       const group = groups.get(key)!;
-      group[kind].push(value);
-      group.z = msg.z;
+      group.t.push(tVal);
+      group.h.push(hVal);
+      group.p.push(pVal);
     }
 
     const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -80,11 +91,16 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
 
     for (const group of groups.values()) {
       if (!group.t.length || !group.h.length || !group.p.length) continue;
+      
+      let displayZone = DISPLAY_INTERMEDIATE;
+      if (group.z.includes('low')) displayZone = DISPLAY_LOW;
+      if (group.z.includes('high')) displayZone = DISPLAY_HIGH;
+
       result.push({
         temperature: avg(group.t),
         humidity: avg(group.h),
         pressure: avg(group.p),
-        zone: zoneFromZ(group.z),
+        zone: displayZone,
       });
     }
 
@@ -103,9 +119,20 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
     return [-padded, padded];
   }, [pca]);
 
+  const filteredScores = useMemo(() => {
+    if (!pca) return [];
+    if (activeZone === 'All') return pca.scores;
+    
+    let targetDisplayLabel = DISPLAY_INTERMEDIATE;
+    if (activeZone === ZONE_LOW) targetDisplayLabel = DISPLAY_LOW;
+    if (activeZone === ZONE_HIGH) targetDisplayLabel = DISPLAY_HIGH;
+
+    return pca.scores.filter(s => s.zone === targetDisplayLabel);
+  }, [pca, activeZone]);
+
   if (!pca) {
     return (
-      <div className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm text-center">
+      <div className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm text-center font-sans">
         <p className="text-sm text-slate-500">Not enough complete temperature, humidity and pressure samples to compute PCA.</p>
       </div>
     );
@@ -115,14 +142,14 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
   const pc2Pct = (pca.explained[1] * 100).toFixed(1);
   const cumPct = ((pca.explained[0] + pca.explained[1]) * 100).toFixed(1);
 
-  const zoneOrder: string[] = [ZONE_LOW, ZONE_INTERMEDIATE, ZONE_HIGH];
+  const filterOptions = ['All', ZONE_LOW, ZONE_INTERMEDIATE, ZONE_HIGH];
 
   return (
-    <div className="space-y-4">
-      {/* Variance summary cards, mirroring the dashboard status banners */}
+    <div className="space-y-4 font-sans">
+      {/* Variance summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase">Samples Analyzed</p>
+          <p className="text-[10px] text-slate-400 font-semibold uppercase">Samples Analyzed (Clustered)</p>
           <h2 className="text-base font-bold text-slate-900 mt-0.5 font-mono">{pca.sampleCount}</h2>
         </div>
         <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
@@ -147,13 +174,23 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
               <h3 className="font-semibold text-slate-700">PCA Biplot — PC1 vs PC2</h3>
               <p className="text-[11px] text-slate-400">Standardized environmental variables (Temperature, Humidity, Pressure).</p>
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 font-medium self-start sm:self-auto">
-              {zoneOrder.map((zone) => (
-                <div key={zone} className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ZONE_COLORS[zone] }} />
-                  <span>{zone}</span>
-                </div>
-              ))}
+            
+            {/* Pill-shaped Tab Filter */}
+            <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200/60 self-start sm:self-auto shrink-0">
+              {filterOptions.map((zone) => {
+                const label = zone === 'All' ? 'All' : zone === 'intermediate' ? 'Inter.' : zone;
+                return (
+                  <button
+                    key={zone}
+                    onClick={() => setActiveZone(zone)}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all uppercase tracking-wide ${
+                      activeZone === zone ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -204,13 +241,13 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
                   }}
                 />
 
-                <Scatter name="Observations" data={pca.scores}>
-                  {pca.scores.map((s, i) => (
+                <Scatter name="Observations" data={filteredScores}>
+                  {filteredScores.map((s, i) => (
                     <Cell key={`pca-${i}`} fill={ZONE_COLORS[s.zone] ?? '#3b82f6'} fillOpacity={0.55} />
                   ))}
                 </Scatter>
 
-                {/* Loading vectors: each variable drawn from origin to its scaled loading position */}
+                {/* Loading vectors */}
                 {pca.loadings.map((loading) => {
                   const color = VARIABLE_COLORS[loading.variable] ?? '#475569';
                   return (
@@ -277,7 +314,7 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
             <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-indigo-400 mb-1">How to read</p>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Each point is a co-located, simultaneous T/H/P reading projected onto the first two principal components.
+                Each point is a clustered, co-located, simultaneous T/H/P reading projected onto the first two principal components.
                 Arrows show how each variable loads onto PC1/PC2 — points near an arrow score high on that variable.
               </p>
             </div>

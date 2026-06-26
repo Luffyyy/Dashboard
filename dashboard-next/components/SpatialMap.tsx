@@ -75,16 +75,16 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
           
           <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200/60 self-start sm:self-auto shrink-0">
             {Object.values(HeightZone).map((zone) => (
-              <button
-                key={zone}
-                onClick={() => onFilterChange(zone)}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all uppercase tracking-wide ${
-                  activeFilter === zone ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                {zone.split(' ')[0]}
-              </button>
-            ))}
+                <button
+                  key={zone}
+                  onClick={() => onFilterChange(zone)}
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all uppercase tracking-wide ${
+                    activeFilter === zone ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  {zone === 'intermediate' ? 'Inter.' : zone}
+                </button>
+              ))}
           </div>
         </div>
 
