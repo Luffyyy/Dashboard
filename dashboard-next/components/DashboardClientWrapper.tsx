@@ -9,14 +9,15 @@ import MANOVAResults from './MANOVAResults';
 import KrigingAnalysis from './KrigingAnalysis';
 import { formatTimestampDay, formatTimestampTime, getTimestampMinutes } from '../lib/time';
 import { initFirebaseFromEnv, subscribeToMessages, clearMessages, loadMessages } from '../lib/firebase';
+import { normalizeTelemetryDataset } from '../lib/telemetry-data';
 
 export interface MQTTMessage {
   id: string;
   createAt: string;
   payload: string;
-  X: number;
-  Y: number;
-  Z: number;
+  x: number;
+  y: number;
+  z: number;
   topic: string;
 }
 
@@ -42,7 +43,7 @@ function getHeightZone(z: number | string): HeightZone {
     return HeightZone.INTERMEDIATE;
   }
 
-  // If a numeric value is provided, treat it as meters and fall back to sensible thresholds
+  // Meter-based vertical thresholds.
   if (typeof z === 'number') {
     if (z <= 0.3) return HeightZone.LOW;
     if (z <= 0.6) return HeightZone.INTERMEDIATE;
@@ -64,7 +65,7 @@ function getDatasetDefaults(messages: MQTTMessage[]) {
 
   let latestValidMessage: MQTTMessage | null = null;
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].X !== undefined && messages[i].Y !== undefined) {
+    if (messages[i].x !== undefined && messages[i].y !== undefined) {
       latestValidMessage = messages[i];
       break;
     }
@@ -79,62 +80,22 @@ function getDatasetDefaults(messages: MQTTMessage[]) {
     latestValidMessage,
     defaultDay,
     defaultEndMinutesValue,
-    activeHeightFilter: latestValidMessage ? getHeightZone(latestValidMessage.Z) : HeightZone.INTERMEDIATE,
+    activeHeightFilter: latestValidMessage ? getHeightZone(latestValidMessage.z) : HeightZone.INTERMEDIATE,
   };
 }
-
-type DashboardDataset = {
-  messages: MQTTMessage[];
-  brokerHost: string;
-  clientId: string;
-  label: string;
-};
-
-function extractDatasetFromJson(json: unknown, fallbackHost: string, fallbackClientId: string): DashboardDataset {
-  const candidateArray = Array.isArray(json) ? json : [json];
-
-  for (const entry of candidateArray) {
-    if (!entry || typeof entry !== 'object') continue;
-
-    const record = entry as Partial<{
-      messages: MQTTMessage[];
-      host: string;
-      clientId: string;
-      name: string;
-      id: string;
-    }>;
-
-    if (Array.isArray(record.messages)) {
-      return {
-        messages: record.messages,
-        brokerHost: record.host || fallbackHost,
-        clientId: record.clientId || fallbackClientId,
-        label: record.name || record.id || 'Uploaded JSON',
-      };
-    }
-  }
-
-  return {
-    messages: [],
-    brokerHost: fallbackHost,
-    clientId: fallbackClientId,
-    label: 'Uploaded JSON',
-  };
-}
-
 function checkWarning(topic: string, val: number): boolean {
   if (topic.includes('temp') && val > 25.00) return true;
-  if (topic.includes('humidity') && (val < 40.0 || val > 70.0)) return true;
+  if (topic.includes('humidity') && (val < 40.0 || val > 75.0)) return true;
   if (topic.includes('pressure') && (val < 950.0 || val > 1050.0)) return true;
   return false;
 }
 
 function getSectorCenter(message: MQTTMessage | null) {
   if (!message) return null;
-  // X/Y are now in meters; use 1m grid cells with centers at .5, 1.5, ...
+  // Snap to the nearest 0.5m sector center.
   return {
-    x: Math.floor(message.X) + 0.5,
-    y: Math.floor(message.Y) + 0.5,
+    x: Math.round(message.x * 2) / 2,
+    y: Math.round(message.y * 2) / 2,
   };
 }
 
@@ -170,7 +131,13 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     }
 
     return () => {
-      try { unsub && unsub(); } catch (_) {}
+      if (unsub) {
+        try {
+          unsub();
+        } catch {
+          // no-op
+        }
+      }
     };
   }, [dataset.clientId]);
   
@@ -203,10 +170,10 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   const latestRobotPosition = useMemo(() => {
     if (!latestValidMessage) return null;
     return {
-      x: latestValidMessage.X,
-      y: latestValidMessage.Y,
-      zLabel: getHeightZone(latestValidMessage.Z),
-      zValue: latestValidMessage.Z,
+      x: latestValidMessage.x,
+      y: latestValidMessage.y,
+      zLabel: getHeightZone(latestValidMessage.z),
+      zValue: latestValidMessage.z,
     };
   }, [latestValidMessage]);
 
@@ -228,7 +195,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     }
 
     for (let i = historicalTimeScopeMessages.length - 1; i >= 0; i--) {
-      if (historicalTimeScopeMessages[i].X !== undefined && historicalTimeScopeMessages[i].Y !== undefined) {
+      if (historicalTimeScopeMessages[i].x !== undefined && historicalTimeScopeMessages[i].y !== undefined) {
         return historicalTimeScopeMessages[i];
       }
     }
@@ -240,7 +207,7 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
   const timelines = useMemo(() => {
     const mapTopic = (kw: string) => historicalTimeScopeMessages
       .filter((m) => m.topic.includes(kw))
-      .map((m) => ({ time: formatTimestampTime(m.createAt), value: parseFloat(m.payload), id: m.id, x: m.X, y: m.Y }));
+      .map((m) => ({ time: formatTimestampTime(m.createAt), value: parseFloat(m.payload), id: m.id, x: m.x, y: m.y }));
 
     return {
       temperature: mapTopic('temp'),
@@ -258,10 +225,10 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     };
 
     historicalTimeScopeMessages.forEach((m) => {
-      const zone = getHeightZone(m.Z);
-      // X/Y are in meters; bin into 1m cells and use the center (e.g. 0.5, 1.5)
-      const xGrid = Math.floor(m.X) + 0.5;
-      const yGrid = Math.floor(m.Y) + 0.5;
+      const zone = getHeightZone(m.z);
+      // X/Y are in meters; bin into 0.5m cells.
+      const xGrid = Math.round(m.x * 2) / 2;
+      const yGrid = Math.round(m.y * 2) / 2;
       const key = `${xGrid}_${yGrid}`;
 
       const targetMap = zones[zone];
@@ -329,10 +296,10 @@ export default function DashboardClientWrapper({ initialMessages, brokerHost, cl
     try {
       const fileText = await file.text();
       const parsed = JSON.parse(fileText);
-      const extracted = extractDatasetFromJson(parsed, brokerHost, clientId);
+      const extracted = normalizeTelemetryDataset(parsed, brokerHost, clientId);
 
       if (!extracted.messages.length) {
-        throw new Error('No messages array was found in the uploaded JSON file.');
+        throw new Error('No telemetry messages were found in the uploaded JSON file.');
       }
 
       const loadedDefaults = getDatasetDefaults(extracted.messages);

@@ -53,24 +53,24 @@ export default function MANOVAResults({ messages }: MANOVAResultsProps) {
     messages.forEach((msg) => {
       const k = kind(msg.topic);
       if (!k) return;
-      const xg = Math.floor(msg.X / 100) * 100 + 50;
-      const yg = Math.floor(msg.Y / 100) * 100 + 50;
+      const xg = Math.round(msg.x * 2) / 2;
+      const yg = Math.round(msg.y * 2) / 2;
       const key = `${xg}_${yg}_${minute(msg.createAt)}`;
       if (!groups.has(key)) {
-        groups.set(key, { t: [], h: [], p: [], z: msg.Z });
+        groups.set(key, { t: [], h: [], p: [], z: msg.z });
       }
       const g = groups.get(key)!;
       g[k].push(parseFloat(msg.payload));
-      g.z = msg.Z;
+      g.z = msg.z;
     });
 
     const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
     // Helper to map Z to zone
     const zoneFromZ = (z: number): string => {
-      if (z <= 300) return 'Low (0-300mm)';
-      if (z <= 600) return 'Intermediate (301-600mm)';
-      return 'High (600mm+)';
+      if (z <= 0.3) return 'Low (0-0.3 m)';
+      if (z <= 0.6) return 'Intermediate (0.3-0.6 m)';
+      return 'High (0.6 m+)';
     };
 
     const observations: PCAObservation[] = [];

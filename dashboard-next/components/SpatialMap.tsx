@@ -28,10 +28,10 @@ const LegendItem = ({ colorClass, text }: { colorClass: string; text: string }) 
   </div>
 );
 
-// Centralized helper to map any point to its 100mm grid sector center
+// Centralized helper to map any point to its 0.5m grid sector center
 const getGridCenter = (val: number | undefined): number => {
   if (val === undefined) return 0;
-  return Math.floor(val / 100) * 100 + 50;
+  return Math.round(val * 2) / 2;
 };
 
 type ScatterPoint = Partial<BinnedNode> & {
@@ -43,18 +43,19 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
-    setIsMounted(true);
+    const frameId = window.requestAnimationFrame(() => setIsMounted(true));
+    return () => window.cancelAnimationFrame(frameId);
   }, []);
 
   // Memoize targets to avoid running division loops for every single cell mapping execution frame
   const boundaryTargets = useMemo(() => ({
     selected: {
-      x: getGridCenter(selectedMessage?.X),
-      y: getGridCenter(selectedMessage?.Y),
+      x: getGridCenter(selectedMessage?.x),
+      y: getGridCenter(selectedMessage?.y),
     },
     live: {
-      x: getGridCenter(latestMessage?.X),
-      y: getGridCenter(latestMessage?.Y),
+      x: getGridCenter(latestMessage?.x),
+      y: getGridCenter(latestMessage?.y),
     }
   }), [selectedMessage, latestMessage]);
 
@@ -91,11 +92,11 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
         <div className="bg-slate-50/60 border border-slate-100 p-2 rounded-lg mb-4 space-y-1.5">
           <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400 block">Z-Height Layer Guide</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500 font-medium">
-            <LegendItem colorClass="bg-blue-500 opacity-60" text="Low (0-300mm)" />
-            <LegendItem colorClass="bg-blue-500" text="Inter. (301-600mm)" />
-            <LegendItem colorClass="bg-rose-500" text="High (600mm+)" />
+            <LegendItem colorClass="bg-blue-500 opacity-60" text="Low (0-0.3 m)" />
+            <LegendItem colorClass="bg-blue-500" text="Inter. (0.3-0.6 m)" />
+            <LegendItem colorClass="bg-rose-500" text="High (0.6 m+)" />
           </div>
-          <p className="text-[10px] text-slate-400 mt-2">Sector radius: 50 mm (±50 mm in X/Y — 100×100 mm area)</p>
+          <p className="text-[10px] text-slate-400 mt-2">Sector radius: 0.25 m (±0.25 m in X/Y — 0.5×0.5 m area)</p>
         </div>
       </div>
 
@@ -110,8 +111,8 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
             <ScatterChart margin={{ top: 15, right: 15, bottom: 5, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             
-            <XAxis type="number" dataKey="x" name="X Coord" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#94a3b8" label={{ value: 'X Axis (mm)', position: 'insideBottom', offset: -5, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
-            <YAxis type="number" dataKey="y" name="Y Coord" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#94a3b8" label={{ value: 'Y Axis (mm)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
+            <XAxis type="number" dataKey="x" name="X Coord" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#94a3b8" label={{ value: 'X Axis (m)', position: 'insideBottom', offset: -5, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
+            <YAxis type="number" dataKey="y" name="Y Coord" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#94a3b8" label={{ value: 'Y Axis (m)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
             <ZAxis type="number" dataKey="count" range={[100, 260]} />
             
             <Tooltip 
@@ -124,7 +125,7 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
                       <p className={`${data.hasWarning ? 'text-red-400 font-bold' : 'text-blue-400'} mb-1`}>
                         {data.hasWarning ? '⚠️ Warning Threshold Crossed' : 'Grid Sector'}
                       </p>
-                      <p>Center Matrix: ({data.x}, {data.y})</p>
+                      <p>Center Matrix: ({data.x}, {data.y}) m</p>
                       <p>Captured Events: {data.count}</p>
                     </div>
                   );

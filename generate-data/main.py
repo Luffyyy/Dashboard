@@ -88,8 +88,8 @@ def main():
                 
         new_messages = []
         x, y = 0.0, 0.0
-        max_x = 10 # Wrap grid after 10 meters 
-        max_y = 10 # Bound room length to 10 meters
+        max_x = 5 # Wrap grid after 5 meters 
+        max_y = 5 # Bound room length to 5 meters
         
         # 4. Generate the new interpolated routine sequence
         for group in groups:
@@ -131,7 +131,7 @@ def main():
                 x = 0.0
                 y += 0.5
                 if y > max_y:
-                    y = 0.0 # Reset back to start of the room to stay within 10x10 bounds
+                    y = 0.0 # Reset back to start of the room to stay within 5x5 bounds
                 
         # Replace original messages with our newly scaled routine sequence
         connection['messages'] = new_messages

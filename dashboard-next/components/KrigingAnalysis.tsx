@@ -37,8 +37,8 @@ type KrigingAnalysisState = {
 
 function interpolateCartesianIDW(
   points: KrigingPoint[],
-  gridSize: number = 1200,
-  step: number = 50
+  gridSize: number = 5,
+  step: number = 0.5
 ) {
   const predictions: KrigingPoint[] = [];
   for (let x = 0; x <= gridSize; x += step) {
@@ -52,7 +52,7 @@ function interpolateCartesianIDW(
           exactMatch = p; 
           break; 
         }
-        if (dist < 600) {
+        if (dist < 5) {
           const w = 1 / Math.pow(dist, 2);
           num1 += w * p.pc1; 
           num2 += w * p.pc2; 
@@ -81,7 +81,7 @@ function calculateMoransI(points: Array<{ x: number; y: number; value: number }>
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
       const distance = Math.sqrt(Math.pow(points[i].x - points[j].x, 2) + Math.pow(points[i].y - points[j].y, 2));
-      if (distance > 0 && distance < 600) { 
+      if (distance > 0 && distance < 5) { 
         const weight = 1 / distance; 
         numerator += weight * (points[i].value - meanValue) * (points[j].value - meanValue);
         sumWeights += weight;
@@ -195,8 +195,8 @@ const InterpolationSurfaceMap = ({
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis type="number" dataKey="x" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#64748b" label={{ value: 'Room X (mm)', position: 'insideBottom', offset: -10, fill: '#475569', fontWeight: 600, fontSize: 11 }} />
-            <YAxis type="number" dataKey="y" domain={[0, 1200]} tickCount={7} fontSize={10} stroke="#64748b" label={{ value: 'Room Y (mm)', angle: -90, position: 'insideLeft', fill: '#475569', fontWeight: 600, fontSize: 11 }} />
+            <XAxis type="number" dataKey="x" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#64748b" label={{ value: 'Room X (m)', position: 'insideBottom', offset: -10, fill: '#475569', fontWeight: 600, fontSize: 11 }} />
+            <YAxis type="number" dataKey="y" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#64748b" label={{ value: 'Room Y (m)', angle: -90, position: 'insideLeft', fill: '#475569', fontWeight: 600, fontSize: 11 }} />
             <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} formatter={(value: unknown) => typeof value === 'number' ? value.toFixed(3) : String(value)} labelFormatter={() => ''} />
             
             <Scatter name="Interpolated Surface" data={predictions}>
@@ -227,11 +227,11 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
     messages.forEach((msg) => {
       const topic = msg.topic.includes('temp') ? 't' : msg.topic.includes('humidity') ? 'h' : msg.topic.includes('pressure') ? 'p' : null;
       if (!topic) return;
-      const xg = Math.floor(msg.X / 100) * 100 + 50;
-      const yg = Math.floor(msg.Y / 100) * 100 + 50;
+      const xg = Math.round(msg.x * 2) / 2;
+      const yg = Math.round(msg.y * 2) / 2;
       const key = `${xg}_${yg}_${msg.createAt.slice(0, 16)}`;
       
-      if (!groups.has(key)) groups.set(key, { t: [], h: [], p: [], x: xg, y: yg, z: msg.Z });
+      if (!groups.has(key)) groups.set(key, { t: [], h: [], p: [], x: xg, y: yg, z: msg.z });
       groups.get(key)![topic].push(parseFloat(msg.payload));
     });
 
@@ -267,7 +267,7 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
     });
 
     const observedPoints: KrigingPoint[] = Array.from(uniqueSpatialMap.values()).map(p => ({ x: p.x, y: p.y, pc1: p.sumPC1 / p.count, pc2: p.sumPC2 / p.count }));
-    const interpolatedGrid = interpolateCartesianIDW(observedPoints, 1200, 50);
+    const interpolatedGrid = interpolateCartesianIDW(observedPoints, 5, 0.5);
 
     const moransPC1 = calculateMoransI(observedPoints.map(p => ({ x: p.x, y: p.y, value: p.pc1 })));
     const moransPC2 = calculateMoransI(observedPoints.map(p => ({ x: p.x, y: p.y, value: p.pc2 })));
@@ -278,11 +278,11 @@ export default function KrigingAnalysis({ messages }: KrigingAnalysisProps) {
     };
 
     const predictionsByDistance: Array<{ distance: string; count: number; avgPC1: number; avgPC2: number }> = [];
-    for (let i = 0; i <= 600; i += 100) {
-      const inZone = interpolatedGrid.filter((p) => Math.sqrt(Math.pow(p.x - 600, 2) + Math.pow(p.y - 600, 2)) >= i && Math.sqrt(Math.pow(p.x - 600, 2) + Math.pow(p.y - 600, 2)) < i + 100);
+    for (let i = 0; i <= 3; i += 1) {
+      const inZone = interpolatedGrid.filter((p) => Math.sqrt(Math.pow(p.x - 2.5, 2) + Math.pow(p.y - 2.5, 2)) >= i && Math.sqrt(Math.pow(p.x - 2.5, 2) + Math.pow(p.y - 2.5, 2)) < i + 1);
       if (inZone.length > 0) {
         predictionsByDistance.push({
-          distance: `${i}-${i + 100}mm`, count: inZone.length,
+          distance: `${i}-${i + 1}m`, count: inZone.length,
           avgPC1: inZone.reduce((sum, p) => sum + p.pc1, 0) / inZone.length,
           avgPC2: inZone.reduce((sum, p) => sum + p.pc2, 0) / inZone.length,
         });

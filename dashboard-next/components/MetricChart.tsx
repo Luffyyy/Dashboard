@@ -43,8 +43,8 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
   const selectedSectorCenter = useMemo(() => {
     if (!selectedMessage) return null;
     return {
-      x: Math.floor(selectedMessage.X / 100) * 100 + 50,
-      y: Math.floor(selectedMessage.Y / 100) * 100 + 50,
+      x: Math.round(selectedMessage.x * 2) / 2,
+      y: Math.round(selectedMessage.y * 2) / 2,
     };
   }, [selectedMessage]);
 
@@ -52,7 +52,7 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
   const filteredData = useMemo(() => {
     const isPointInSelectedGrid = (x: number, y: number) => {
       if (!selectedSectorCenter) return false;
-      return Math.abs(x - selectedSectorCenter.x) <= 50 && Math.abs(y - selectedSectorCenter.y) <= 50;
+      return Math.abs(x - selectedSectorCenter.x) <= 0.25 && Math.abs(y - selectedSectorCenter.y) <= 0.25;
     };
 
     if (chartScope === 'all') {
@@ -133,7 +133,7 @@ export default function MetricChart({ temperatureData, humidityData, pressureDat
             <StatBadge 
               icon={<div className="p-1.5 bg-blue-100 text-blue-700 rounded-md"><MapPin size={12} /></div>}
               label="Sector Center"
-              value={selectedSectorCenter ? `X:${selectedSectorCenter.x} Y:${selectedSectorCenter.y}` : 'N/A'}
+              value={selectedSectorCenter ? `X:${selectedSectorCenter.x}m Y:${selectedSectorCenter.y}m` : 'N/A'}
             />
             <StatBadge 
               icon={<div className="p-1.5 bg-amber-100 text-amber-700 rounded-md"><Activity size={12} /></div>}

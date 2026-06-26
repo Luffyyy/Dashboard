@@ -21,13 +21,13 @@ interface PCABiplotProps {
 }
 
 // Self-contained height zone helpers to avoid a circular module dependency with DashboardClientWrapper.
-const ZONE_LOW = 'Low (0-300mm)';
-const ZONE_INTERMEDIATE = 'Intermediate (301-600mm)';
-const ZONE_HIGH = 'High (600mm+)';
+const ZONE_LOW = 'Low (0-0.3 m)';
+const ZONE_INTERMEDIATE = 'Intermediate (0.3-0.6 m)';
+const ZONE_HIGH = 'High (0.6 m+)';
 
 function zoneFromZ(z: number): string {
-  if (z <= 300) return ZONE_LOW;
-  if (z <= 600) return ZONE_INTERMEDIATE;
+  if (z <= 0.3) return ZONE_LOW;
+  if (z <= 0.6) return ZONE_INTERMEDIATE;
   return ZONE_HIGH;
 }
 
@@ -54,7 +54,7 @@ function classifyKind(topic: string): 't' | 'h' | 'p' | null {
 }
 
 export default function PCABiplot({ messages }: PCABiplotProps) {
-  // Build co-located, simultaneous (T,H,P) observations by binning into 100mm sectors and per-minute buckets.
+  // Build co-located, simultaneous (T,H,P) observations by binning into 0.5m sectors and per-minute buckets.
   const observations = useMemo<PCAObservation[]>(() => {
     const groups = new Map<string, { t: number[]; h: number[]; p: number[]; z: number }>();
 
@@ -64,15 +64,15 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
       const value = parseFloat(msg.payload);
       if (!Number.isFinite(value)) continue;
 
-      const xGrid = Math.floor(msg.X / 100) * 100 + 50;
-      const yGrid = Math.floor(msg.Y / 100) * 100 + 50;
+      const xGrid = Math.round(msg.x * 2) / 2;
+      const yGrid = Math.round(msg.y * 2) / 2;
       const minuteBucket = (msg.createAt || '').slice(0, 16);
       const key = `${xGrid}_${yGrid}_${minuteBucket}`;
 
-      if (!groups.has(key)) groups.set(key, { t: [], h: [], p: [], z: msg.Z });
+      if (!groups.has(key)) groups.set(key, { t: [], h: [], p: [], z: msg.z });
       const group = groups.get(key)!;
       group[kind].push(value);
-      group.z = msg.Z;
+      group.z = msg.z;
     }
 
     const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
