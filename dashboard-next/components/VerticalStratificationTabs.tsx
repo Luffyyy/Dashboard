@@ -1,8 +1,8 @@
 // components/VerticalStratificationTabs.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { Thermometer, Droplets } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Thermometer, Droplets, Calendar } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
 import BaseANOVAResults from './BaseANOVAResults';
 
@@ -12,8 +12,29 @@ interface VerticalStratificationTabsProps {
 
 export default function VerticalStratificationTabs({ messages }: VerticalStratificationTabsProps) {
   const [subTab, setSubTab] = useState<'temperature' | 'humidity'>('temperature');
+  const [selectedDay, setSelectedDay] = useState<string>('all');
 
-const temperatureConfig = {
+  // Parse and extract unique sorted days present in the dataset
+  const availableDays = useMemo(() => {
+    const daysSet = new Set<string>();
+    messages.forEach((msg) => {
+      if (msg.createAt) {
+        const dateStr = msg.createAt.split(' ')[0]; // Extracts YYYY-MM-DD
+        if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          daysSet.add(dateStr);
+        }
+      }
+    });
+    return Array.from(daysSet).sort();
+  }, [messages]);
+
+  // Filter messages based on the selected calendar date
+  const filteredMessages = useMemo(() => {
+    if (selectedDay === 'all') return messages;
+    return messages.filter((msg) => msg.createAt?.startsWith(selectedDay));
+  }, [messages, selectedDay]);
+
+  const temperatureConfig = {
     key: 'temperature' as const,
     label: 'Temperature',
     unit: '°C',
@@ -63,37 +84,64 @@ const temperatureConfig = {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="bg-white border border-slate-200 rounded-xl p-2 flex gap-2 max-w-md shadow-sm">
-        <button
-          type="button"
-          onClick={() => setSubTab('temperature')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-            subTab === 'temperature'
-              ? 'bg-amber-500 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <Thermometer className="w-4 h-4" />
-          Thermal Stratification
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab('humidity')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-            subTab === 'humidity'
-              ? 'bg-sky-600 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <Droplets className="w-4 h-4" />
-          Moisture Accumulation
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
+        {/* Metric Tabs */}
+        <div className="bg-slate-100 p-1 flex gap-1 rounded-lg w-full sm:max-w-md">
+          <button
+            type="button"
+            onClick={() => setSubTab('temperature')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              subTab === 'temperature'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Thermometer className="w-4 h-4" />
+            Thermal Stratification
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('humidity')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              subTab === 'humidity'
+                ? 'bg-sky-600 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Droplets className="w-4 h-4" />
+            Moisture Accumulation
+          </button>
+        </div>
+
+        {/* Day Selector */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Calendar className="w-4 h-4 text-slate-400" />
+          <label htmlFor="day-select" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Analysis Frame:
+          </label>
+          <select
+            id="day-select"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="text-sm font-semibold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Full Timeline (Combined)</option>
+            {availableDays.map((day) => (
+              <option key={day} value={day}>
+                {day === '2026-06-22' ? '2026-06-22 (Base Scenario)' : 
+                 day === '2026-06-23' ? '2026-06-23 (System Stress)' : 
+                 day === '2026-06-24' ? '2026-06-24 (Recovery Phase)' : day}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="transition-all duration-200">
         <BaseANOVAResults 
-          messages={messages} 
+          messages={filteredMessages} 
           config={subTab === 'temperature' ? temperatureConfig : humidityConfig}
+          selectedDay={selectedDay}
         />
       </div>
     </div>

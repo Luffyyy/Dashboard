@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import type { MQTTMessage } from './DashboardClientWrapper';
 import { computeANOVA } from '../lib/anova';
 
@@ -31,9 +31,10 @@ interface MetricConfig {
 interface BaseANOVAResultsProps {
   messages: MQTTMessage[];
   config: MetricConfig;
+  selectedDay: string;
 }
 
-export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsProps) {
+export default function BaseANOVAResults({ messages, config, selectedDay }: BaseANOVAResultsProps) {
   const { anovaResult, chartData } = useMemo(() => {
     if (!messages.length) return { anovaResult: null, chartData: [] };
 
@@ -44,9 +45,6 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
       return z;
     };
 
-    // Group all readings by spatial location (x, y) within each zone.
-    // Average them to get one representative value per physical location.
-    // This is the correct unit of observation — a location, not a timestamp.
     const locationBuckets = new Map<string, { values: number[]; zone: string }>();
 
     messages.forEach(msg => {
@@ -64,7 +62,6 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
       locationBuckets.get(key)!.values.push(parseFloat(rawValue as string));
     });
 
-    // One mean per spatial location = one honest independent observation
     const observations = Array.from(locationBuckets.values())
       .filter(b => b.values.length > 0)
       .map(b => ({
@@ -72,7 +69,6 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
         zone: b.zone,
       }));
 
-    // Need at least 2 zones with 2+ locations each
     const zoneCounts = new Map<string, number>();
     observations.forEach(o => zoneCounts.set(o.zone, (zoneCounts.get(o.zone) ?? 0) + 1));
     const validZones = Array.from(zoneCounts.values());
@@ -91,8 +87,8 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
 
   if (!anovaResult) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-slate-500">
-        Insufficient vertical data records available to process {config.label.toLowerCase()} analytics variance.
+      <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-slate-500 shadow-sm">
+        Insufficient vertical variation or data points found for <strong>{selectedDay}</strong> to perform an ANOVA test.
       </div>
     );
   }
@@ -105,6 +101,15 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
 
   return (
     <div className="space-y-6">
+      {/* Context Alert showing what day is viewed */}
+      <div className="bg-blue-50/50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-2.5 text-xs text-blue-800 font-medium">
+        <Info className="w-4 h-4 text-blue-500 shrink-0" />
+        <span>
+          Showing variance computation isolated to: <strong className="underline decoration-blue-300 decoration-2">{selectedDay === 'all' ? 'All Available Simulation Dates' : selectedDay}</strong>. 
+          Aggregation aggregates spatial positions across this timeframe into distinct categorical buckets.
+        </span>
+      </div>
+
       {/* Dynamic Hypothesis Card */}
       <div className={`${config.bannerBg} border ${config.bannerBorder} rounded-xl p-5 shadow-sm`}>
         <div className="flex flex-col gap-1.5">
@@ -157,7 +162,7 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           )}
           <div>
-            <h3 className="font-semibold text-slate-900 text-sm">ANOVA Test Analysis Output</h3>
+            <h3 className="font-semibold text-slate-900 text-sm">ANOVA Test Analysis Output ({selectedDay})</h3>
             <p className={`text-xs ${isSignificant ? 'text-emerald-700' : 'text-amber-700'} mt-1 font-medium leading-relaxed`}>
               {anovaResult.testConclusion}
             </p>
@@ -186,7 +191,7 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
       {/* Chart */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <h3 className="font-semibold text-slate-900 text-sm mb-1">Mean {config.label} by Height Zone</h3>
-        <p className="text-xs text-slate-500 mb-4">Group means computed from all individual sensor readings per zone.</p>
+        <p className="text-xs text-slate-500 mb-4">Group means computed from filtered single observations on {selectedDay}.</p>
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>

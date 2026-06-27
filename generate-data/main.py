@@ -3,10 +3,11 @@ import math
 import uuid
 import random
 import requests
+import time  # <--- Added for rate-limit delays
 from datetime import datetime, timedelta
 
 # --- CONFIGURATION ---
-DAYS_TO_GENERATE = 3
+DAYS_TO_GENERATE = 5  # Updated to 5 days matching configuration header
 LATITUDE = 32.9124
 LONGITUDE = 35.2913
 
@@ -23,10 +24,6 @@ TEMP_NOISE_PHI = 0.55
 HUMID_NOISE_PHI = 0.5
 PRESS_NOISE_PHI = 0.7
 
-# Per-location random effect std devs — this is what gives ANOVA
-# something real to work with. Without this, all locations in a zone
-# converge to the same mean after time-averaging and within-zone
-# variance collapses to ~0, making F infinite and p = 0.
 LOCATION_TEMP_STD = 0.3    # deg C location-to-location variation within a zone
 LOCATION_HUMID_STD = 1.5   # % RH location-to-location variation within a zone
 
@@ -191,14 +188,15 @@ def main():
     dataset_avg_press = filtered_mean(raw_pressures, PRESS_BOUNDS, 1010.0)
     dataset_baseline_dew = dew_point(dataset_avg_temp, dataset_avg_humid)
 
+    # Weather map is fetched ONCE globally outside loop to protect API limits
     weather_map = fetch_karmiel_weather(start_filter_date, end_filter_date)
     if weather_map is None:
         weather_map = synthetic_diurnal_weather(start_filter_date, end_filter_date)
 
     api_temps = [v[0] for v in weather_map.values()]
     api_dewpoints = [dew_point(v[0], v[1]) for v in weather_map.values()]
-    api_mean_temp = sum(api_temps) / len(api_temps)
-    api_mean_dewpoint = sum(api_dewpoints) / len(api_dewpoints)
+    api_mean_temp = sum(api_temps) / len(api_temps) if api_temps else dataset_avg_temp
+    api_mean_dewpoint = sum(api_dewpoints) / len(api_dewpoints) if api_dewpoints else dataset_baseline_dew
 
     for connection in connections:
         if 'messages' not in connection:
@@ -235,15 +233,10 @@ def main():
         humid_noise = {z: ArNoise(HUMID_NOISE_PHI, HUMID_NOISE_STD) for z in ("low", "intermediate", "high")}
         press_noise = {z: ArNoise(PRESS_NOISE_PHI, PRESS_NOISE_STD) for z in ("low", "intermediate", "high")}
 
-        # Per-location permanent offsets — drawn once per (x, y, z) location.
-        # This gives each physical sensor position its own stable bias,
-        # creating real within-zone variance that ANOVA can measure against
-        # between-zone differences. Without this, time-averaging erases all
-        # within-zone spread and F blows up.
         location_effects: dict[tuple, dict] = {}
 
         if groups:
-            for day_idx in range(DAYS_TO_GENERATE + 1):
+            for day_idx in range(DAYS_TO_GENERATE):
                 day_shift = timedelta(days=day_idx)
 
                 for group in groups:
@@ -265,6 +258,33 @@ def main():
                     strat_amplitude = BASE_STRATIFICATION * (
                         1 + STRATIFICATION_LOAD_GAIN * min(abs(temp_deviation), STRAT_CAP_DEVIATION)
                     )
+                    
+                    # --- SCENARIO MODIFIERS BASED ON THE DAY ---
+                    scenario_temp_offset = 0.0
+                    scenario_strat_multiplier = 1.0
+                    
+                    if day_idx == 0:
+                        # Scenario 1: Base Scenario (June 22)
+                        pass
+                        
+                    elif day_idx == 1:
+                        # Scenario 2: System Stress/Disruption (June 23)
+                        scenario_temp_offset = 6.0
+                        scenario_strat_multiplier = 3.0
+                        
+                    elif day_idx == 2:
+                        # Scenario 3: System Recovery/Rehabilitation (June 24)
+                        hour_of_day = current_time.hour + (current_time.minute / 60.0)
+                        recovery_factor = max(0.0, 1.0 - (hour_of_day / 24.0))
+                        scenario_temp_offset = 5.0 * recovery_factor
+                        scenario_strat_multiplier = 1.0 + (1.5 * recovery_factor)
+                        
+                    else:
+                        # Extra Simulation Framework Stability for Remaining Days (Days 4 & 5)
+                        pass
+
+                    strat_amplitude *= scenario_strat_multiplier
+                    
                     strat_offset = {
                         "low": -strat_amplitude / 2,
                         "intermediate": 0.0,
@@ -274,7 +294,6 @@ def main():
                     for i, z in enumerate(("low", "intermediate", "high")):
                         step_time = current_time + timedelta(seconds=i * 2)
 
-                        # Look up or create this location's permanent effect
                         loc_key = (round(x, 1), round(y, 1), z)
                         if loc_key not in location_effects:
                             location_effects[loc_key] = {
@@ -288,7 +307,8 @@ def main():
                             dataset_avg_temp
                             + temp_deviation * INDOOR_COUPLING
                             + strat_offset[z]
-                            + effect['temp']   # location-specific bias
+                            + effect['temp']   
+                            + scenario_temp_offset
                         )
                         final_temp = clamp(room_temp_mu + temp_noise[z].next(), TEMP_BOUNDS)
 
@@ -323,7 +343,7 @@ def main():
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
 
-    print("Done. Location effects added — within-zone variance now realistic for ANOVA.")
+    print(f"Done. Generated {DAYS_TO_GENERATE} days spanning from June 22 onwards smoothly.")
 
 
 if __name__ == "__main__":
