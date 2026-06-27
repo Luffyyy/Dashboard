@@ -19,8 +19,8 @@ interface MetricConfig {
   barColor: string;
   getConclusion: (val: number, isSignificant: boolean) => string;
   chartMinMaxPadding: number;
-  nullHypothesis: HypothesisDetails; // Fixed type from string to HypothesisDetails
-  altHypothesis: HypothesisDetails;  // Fixed type from string to HypothesisDetails
+  nullHypothesis: HypothesisDetails;
+  altHypothesis: HypothesisDetails;
   description: string;
   hypothesisTitle: string;
   bannerBg: string;
@@ -37,26 +37,6 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
   const { anovaResult, chartData } = useMemo(() => {
     if (!messages.length) return { anovaResult: null, chartData: [] };
 
-    const groups = new Map<string, { values: number[]; z: string }>();
-    const minute = (t: string) => t.slice(0, 16);
-
-    messages.forEach((msg) => {
-      const rawValue = msg[config.key];
-      if (rawValue === undefined || rawValue === null || rawValue === "") return;
-
-      const xg = Math.round(msg.x * 2) / 2;
-      const yg = Math.round(msg.y * 2) / 2;
-      const rawZone = typeof msg.z === 'string' ? msg.z.trim().toLowerCase() : 'intermediate';
-      const key = `${xg}_${yg}_${minute(msg.createAt || '')}_${rawZone}`;
-
-      if (!groups.has(key)) {
-        groups.set(key, { values: [], z: rawZone });
-      }
-      groups.get(key)!.values.push(parseFloat(rawValue));
-    });
-
-    const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
-
     const formatZone = (z: string): string => {
       if (z === 'low') return 'Low (0-0.3 m)';
       if (z === 'intermediate') return 'Intermediate (0.3-0.6 m)';
@@ -64,17 +44,44 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
       return z;
     };
 
-    const observations = Array.from(groups.values())
-      .filter((g) => g.values.length > 0)
-      .map((g) => ({
-        temperature: avg(g.values), 
-        zone: formatZone(g.z),
+    // Group all readings by spatial location (x, y) within each zone.
+    // Average them to get one representative value per physical location.
+    // This is the correct unit of observation — a location, not a timestamp.
+    const locationBuckets = new Map<string, { values: number[]; zone: string }>();
+
+    messages.forEach(msg => {
+      const rawValue = msg[config.key];
+      if (rawValue === undefined || rawValue === null || rawValue === '') return;
+
+      const xg = Math.round(msg.x * 2) / 2;
+      const yg = Math.round(msg.y * 2) / 2;
+      const rawZone = typeof msg.z === 'string' ? msg.z.trim().toLowerCase() : 'intermediate';
+      const key = `${xg}_${yg}_${rawZone}`;
+
+      if (!locationBuckets.has(key)) {
+        locationBuckets.set(key, { values: [], zone: formatZone(rawZone) });
+      }
+      locationBuckets.get(key)!.values.push(parseFloat(rawValue as string));
+    });
+
+    // One mean per spatial location = one honest independent observation
+    const observations = Array.from(locationBuckets.values())
+      .filter(b => b.values.length > 0)
+      .map(b => ({
+        value: b.values.reduce((a, v) => a + v, 0) / b.values.length,
+        zone: b.zone,
       }));
 
-    if (observations.length < 3) return { anovaResult: null, chartData: [] };
+    // Need at least 2 zones with 2+ locations each
+    const zoneCounts = new Map<string, number>();
+    observations.forEach(o => zoneCounts.set(o.zone, (zoneCounts.get(o.zone) ?? 0) + 1));
+    const validZones = Array.from(zoneCounts.values());
+    if (validZones.length < 2 || validZones.some(c => c < 2)) {
+      return { anovaResult: null, chartData: [] };
+    }
 
     const result = computeANOVA(observations);
-    const cData = result.groups.map((zone) => ({
+    const cData = result.groups.map(zone => ({
       zone,
       [config.label]: parseFloat(result.groupStats[zone].mean.toFixed(2)),
     }));
@@ -91,7 +98,10 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
   }
 
   const isSignificant = anovaResult.pValue < 0.05;
-  const totalN = Object.values(anovaResult.groupStats).reduce((sum, stat) => sum + stat.count, 0);
+  const totalN = Object.values(anovaResult.groupStats).reduce((sum, s) => sum + s.count, 0);
+  const pValueDisplay = anovaResult.pValue < 0.0001
+    ? anovaResult.pValue.toExponential(4)
+    : anovaResult.pValue.toFixed(4);
 
   return (
     <div className="space-y-6">
@@ -108,7 +118,7 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
         <p className="text-sm text-slate-700 font-medium mt-2 max-w-3xl leading-relaxed">
           {config.description}
         </p>
-        
+
         <div className="mt-4 pt-3.5 border-t border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-slate-100 flex flex-col gap-1">
             <div className="flex items-center gap-2">
@@ -138,7 +148,7 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
         </div>
       </div>
 
-      {/* Test Verdict Statement */}
+      {/* Test Verdict */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
           {isSignificant ? (
@@ -149,18 +159,15 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
           <div>
             <h3 className="font-semibold text-slate-900 text-sm">ANOVA Test Analysis Output</h3>
             <p className={`text-xs ${isSignificant ? 'text-emerald-700' : 'text-amber-700'} mt-1 font-medium leading-relaxed`}>
-              {isSignificant 
-                ? `Significant: p = ${anovaResult.pValue.toExponential(4)} < 0.05. There is a statistically significant difference in ${config.label.toLowerCase()} profiles across vertical height zones.` 
-                : `Not significant: p = ${anovaResult.pValue.toFixed(6)} >= 0.05. Uniform metrics noted; no distinct height profile layout distribution detected.`}
+              {anovaResult.testConclusion}
             </p>
           </div>
         </div>
 
-        {/* Statistical Parameters Board */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-5">
           {[
-            { label: 'F-Statistic', value: anovaResult.fValue.toFixed(3) },
-            { label: 'p-value', value: anovaResult.pValue < 0.0001 ? '< 0.0001' : anovaResult.pValue.toFixed(4), highlight: true },
+            { label: 'F-Statistic', value: isFinite(anovaResult.fValue) ? anovaResult.fValue.toFixed(3) : '∞' },
+            { label: 'p-value', value: pValueDisplay, highlight: true },
             { label: 'Degrees of Freedom', value: `${anovaResult.dfBetween} / ${anovaResult.dfWithin}` },
             { label: 'Effect Size (η²)', value: anovaResult.effectSize.toFixed(4) },
             { label: 'Sample Size (N)', value: totalN },
@@ -176,32 +183,36 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
         </div>
       </div>
 
-      {/* Render Chart Layer */}
+      {/* Chart */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <h3 className="font-semibold text-slate-900 text-sm mb-1">Mean {config.label} by Height Zone</h3>
-        <p className="text-xs text-slate-500 mb-4">Calculated group means aggregated using localized sampling groups.</p>
+        <p className="text-xs text-slate-500 mb-4">Group means computed from all individual sensor readings per zone.</p>
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="zone" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[`dataMin - ${config.chartMinMaxPadding}`, `dataMax + ${config.chartMinMaxPadding}`]} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip
+              <YAxis
+                domain={[`dataMin - ${config.chartMinMaxPadding}`, `dataMax + ${config.chartMinMaxPadding}`]}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgb(0 0 0 / 0.05)' }}
                 formatter={(value: any) => {
-                    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-                    const formattedValue = Number.isFinite(numValue) ? numValue.toFixed(2) : '0.00';
-                    return [`${formattedValue} ${config.unit}`, `Mean ${config.label}`];
+                  const n = typeof value === 'string' ? parseFloat(value) : value;
+                  return [`${Number.isFinite(n) ? n.toFixed(2) : '—'} ${config.unit}`, `Mean ${config.label}`];
                 }}
-                />
+              />
               <Bar dataKey={config.label} fill={config.barColor} radius={[4, 4, 0, 0]} maxBarSize={50} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Standard Descriptive Matrix Table */}
+      {/* Descriptive Stats Table */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <h3 className="font-semibold text-slate-900 text-sm mb-3">Descriptive Statistics Table</h3>
         <div className="overflow-x-auto rounded-lg border border-slate-100">
@@ -225,8 +236,8 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
                     <td className="px-4 py-2.5 text-right font-semibold font-mono text-slate-800">
                       {stat.mean.toFixed(2)}{config.unit}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-slate-500">{stat.variance.toFixed(3)}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-slate-500">{Math.sqrt(stat.variance).toFixed(3)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-500">{stat.variance.toFixed(4)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-500">{Math.sqrt(stat.variance).toFixed(4)}</td>
                   </tr>
                 );
               })}
@@ -235,7 +246,7 @@ export default function BaseANOVAResults({ messages, config }: BaseANOVAResultsP
         </div>
       </div>
 
-      {/* Conclusion Banner */}
+      {/* Conclusion */}
       <div className={`${isSignificant ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'} border rounded-xl p-4 shadow-sm`}>
         <h3 className={`font-semibold ${isSignificant ? 'text-emerald-900' : 'text-slate-900'} text-sm mb-1.5`}>
           Conclusion

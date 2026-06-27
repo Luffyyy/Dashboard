@@ -44,7 +44,7 @@ const temperatureConfig = {
     barColor: '#0284c7',
     chartMinMaxPadding: 2,
     hypothesisTitle: 'Hypothesis 2: Low-Level Moisture Accumulation',
-    description: 'Measures whether structural boundaries or microclimate conditions cause humidity to collect disproportionately in lower vertical layers (0–300 mm).',
+    description: 'Measures whether structural boundaries or microclimate conditions cause humidity to collect disproportionately in lower vertical layers (0-0.3 m).',
     nullHypothesis: {
       formula: 'μ₁ = μ₂ = μ₃',
       meaning: 'The true mean humidity levels are equal across all room elevation zones.'
@@ -93,7 +93,7 @@ const temperatureConfig = {
       <div className="transition-all duration-200">
         <BaseANOVAResults 
           messages={messages} 
-          config={subTab === 'temperature' ? temperatureConfig : humidityConfig} 
+          config={subTab === 'temperature' ? temperatureConfig : humidityConfig}
         />
       </div>
     </div>

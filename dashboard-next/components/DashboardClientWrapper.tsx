@@ -38,7 +38,7 @@ function checkWarning(type: 'temp' | 'humidity' | 'pressure', valStr: string | u
   const val = parseFloat(valStr);
   if (!Number.isFinite(val)) return false;
 
-  if (type === 'temp' && val > 25.0) return true;
+  if (type === 'temp' && val > 27.0) return true;
   if (type === 'humidity' && (val < 40.0 || val > 75.0)) return true;
   if (type === 'pressure' && (val < 950.0 || val > 1050.0)) return true;
   return false;

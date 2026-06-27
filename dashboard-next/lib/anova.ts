@@ -11,9 +11,22 @@ export interface ANOVAResult {
   effectSize: number; // Eta-squared (η²)
 }
 
+/**
+ * Computes the upper-tail p-value for an F-distribution directly via the
+ * regularized incomplete beta function, avoiding the catastrophic cancellation
+ * in `1 - CDF(F)` that collapses to 0 for large F values.
+ *
+ *   P(F_{d1,d2} > f) = I(d2 / (d2 + d1·f),  d2/2,  d1/2)
+ */
+function fPValue(f: number, d1: number, d2: number): number {
+  if (!isFinite(f) || f <= 0) return f <= 0 ? 1.0 : 0.0;
+  const x = d2 / (d2 + d1 * f);
+  return (jStat as any).ibeta(x, d2 / 2, d1 / 2);
+}
+
 export function computeANOVA(
   observations: Array<{
-    temperature: number;
+    value: number;
     zone: string;
   }>,
   alpha: number = 0.05
@@ -25,7 +38,6 @@ export function computeANOVA(
   const dfBetween = k - 1;
   const dfWithin = n - k;
 
-  // Initialize return schema for empty or unusable inputs
   const defaultGroupStats: Record<string, { count: number; mean: number; variance: number }> = {};
   zones.forEach(z => { defaultGroupStats[z] = { count: 0, mean: 0, variance: 0 }; });
 
@@ -43,95 +55,96 @@ export function computeANOVA(
     };
   }
 
-  // 2. Calculate Group Statistics (Count, Mean, Variance)
-  let grandSum = 0;
-  const groupStats: Record<string, { count: number; mean: number; variance: number; sumSquares: number }> = {};
-  
+  // 2. Welford's online algorithm — numerically stable mean + M2 per group
+  const groupStats: Record<string, { count: number; mean: number; variance: number; M2: number }> = {};
+
   zones.forEach(zone => {
-    const zoneData = observations.filter(o => o.zone === zone).map(o => o.temperature);
+    const zoneData = observations
+      .filter(o => o.zone === zone)
+      .map(o => o.value);
     const count = zoneData.length;
-    
+
     if (count === 0) {
-      groupStats[zone] = { count: 0, mean: 0, variance: 0, sumSquares: 0 };
+      groupStats[zone] = { count: 0, mean: 0, variance: 0, M2: 0 };
       return;
     }
 
-    const sum = zoneData.reduce((acc, val) => acc + val, 0);
-    grandSum += sum;
-    const mean = sum / count;
-    
-    const sumSquares = zoneData.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0);
-    const variance = count > 1 ? sumSquares / (count - 1) : 0;
+    let mean = 0;
+    let M2 = 0;
+    for (let i = 0; i < zoneData.length; i++) {
+      const val = zoneData[i];
+      const delta = val - mean;
+      mean += delta / (i + 1);
+      M2 += delta * (val - mean);
+    }
 
-    groupStats[zone] = { count, mean, variance, sumSquares };
+    const variance = count > 1 ? M2 / (count - 1) : 0;
+    groupStats[zone] = { count, mean, variance, M2 };
   });
 
-  const grandMean = grandSum / n;
+  // Grand mean weighted by group count
+  const grandMean =
+    zones.reduce((acc, zone) => acc + groupStats[zone].mean * groupStats[zone].count, 0) / n;
 
-  // 3. Compute Sum of Squares
-  let ssb = 0; // Sum of Squares Between groups
-  let ssw = 0; // Sum of Squares Within groups
+  // 3. Sum of Squares
+  let ssb = 0;
+  let ssw = 0;
 
   zones.forEach(zone => {
     const stats = groupStats[zone];
     if (stats.count === 0) return;
-    
-    // Between-group variation: n * (groupMean - grandMean)^2
     ssb += stats.count * Math.pow(stats.mean - grandMean, 2);
-    
-    // Within-group variation: sum of squared deviations from group mean
-    ssw += stats.sumSquares;
+    ssw += stats.M2;
   });
 
-  const sst = ssb + ssw; // Total Sum of Squares
+  const sst = ssb + ssw;
 
   // 4. Mean Squares & F-Statistic
   const msb = ssb / dfBetween;
   const msw = ssw / dfWithin;
-  
-  let fValue = 0;
-  let pValue = 1.0;
 
-  if (msw <= 1e-12) {
-    // If within-group variance is practically zero, the groups are perfectly separated or identical
-    if (msb > 1e-12) {
-      fValue = Infinity;
-      pValue = 0.0;
-    } else {
-      fValue = 0;
-      pValue = 1.0;
-    }
+  let fValue: number;
+  let pValue: number;
+
+  if (msw === 0 && msb === 0) {
+    fValue = 0;
+    pValue = 1.0;
+  } else if (msw === 0 && msb > 0) {
+    fValue = Infinity;
+    pValue = 0.0;
   } else {
     fValue = msb / msw;
-    // Calculate p-value using jStat's F-distribution CDF
-    // p-value is the probability of observing an F-value at least this extreme
-    pValue = 1 - (jStat as any).centralF.cdf(fValue, dfBetween, dfWithin);
+    // Use ibeta-based upper tail — never collapses to 0 for large F
+    pValue = fPValue(fValue, dfBetween, dfWithin);
   }
 
-  // 5. Effect Size (Eta-Squared)
+  // 5. Effect Size (η²)
   const effectSize = sst > 0 ? ssb / sst : 0;
 
-  // Format final stats for output (removing the internal sumSquares tracker)
   const finalGroupStats: Record<string, { count: number; mean: number; variance: number }> = {};
   zones.forEach(z => {
     finalGroupStats[z] = {
       count: groupStats[z].count,
       mean: groupStats[z].mean,
-      variance: groupStats[z].variance
+      variance: groupStats[z].variance,
     };
   });
 
+  const pDisplay = pValue < 1e-10
+    ? pValue.toExponential(10)
+    : pValue.toFixed(10);
+
   const testConclusion = pValue < alpha
-    ? `Significant: p = ${pValue.toExponential(4)} < ${alpha}. There IS a statistically significant difference in temperature across height zones.`
-    : `Not significant: p = ${pValue.toFixed(6)} >= ${alpha}. The mean temperatures are statistically indistinguishable across room heights.`;
+    ? `Significant: p = ${pDisplay} < ${alpha}. There IS a statistically significant difference across height zones.`
+    : `Not significant: p = ${pDisplay} >= ${alpha}. The mean values are statistically indistinguishable across room heights.`;
 
   return {
     groups: zones,
     groupStats: finalGroupStats,
-    fValue: isFinite(fValue) ? fValue : 999.99, // Fallback for safe rendering
+    fValue: isFinite(fValue) ? fValue : Infinity,
     dfBetween,
     dfWithin,
-    pValue: Math.max(0, Math.min(1, pValue)), // Clamp between 0 and 1
+    pValue: Math.max(0, Math.min(1, pValue)),
     testConclusion,
     effectSize,
   };
