@@ -112,7 +112,7 @@ export default function SpatialMap({ binnedData, selectedMessage, latestMessage,
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             
             <XAxis type="number" dataKey="x" name="X Coord" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#94a3b8" label={{ value: 'X Axis (m)', position: 'insideBottom', offset: -5, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
-            <YAxis type="number" dataKey="y" name="Y Coord" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#94a3b8" label={{ value: 'Y Axis (m)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
+            <YAxis type="number" dataKey="y" name="Y Coord" domain={[0, 5]} tickCount={6} fontSize={10} stroke="#94a3b8" label={{ value: 'Y Axis (m)', angle: -90, position: 'center', fontSize: 9, fill: '#94a3b8', fontWeight: 600 }} />
             <ZAxis type="number" dataKey="count" range={[100, 260]} />
             
             <Tooltip 

@@ -269,8 +269,8 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" dataKey="pc1" domain={axisDomain} tickCount={7} fontSize={10} stroke="#94a3b8" />
-                <YAxis type="number" dataKey="pc2" domain={axisDomain} tickCount={7} fontSize={10} stroke="#94a3b8" />
+                <XAxis type="number" dataKey="pc1" domain={axisDomain} tickCount={7} fontSize={10} stroke="#94a3b8" label={{ value: 'PC1', position: 'insideBottom', offset: -5 }} />
+                <YAxis type="number" dataKey="pc2" domain={axisDomain} tickCount={7} fontSize={10} stroke="#94a3b8" label={{ value: 'PC2', position: 'left', offset: -40 }} />
                 {/* ZAxis uses the 'weight' to make denser clustered points appear slightly larger */}
                 <ZAxis dataKey="weight" range={[25, 90]} />
                 <ReferenceLine x={0} stroke="#cbd5e1" />
@@ -410,8 +410,8 @@ export default function PCABiplot({ messages }: PCABiplotProps) {
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 10, right: 15, bottom: -5, left: -15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" />
-                    <XAxis type="number" dataKey="pc1" domain={axisDomain} tick={false} stroke="#cbd5e1" />
-                    <YAxis type="number" dataKey="pc2" domain={axisDomain} tick={false} stroke="#cbd5e1" />
+                    <XAxis type="number" dataKey="pc1" domain={axisDomain} tick={false} stroke="#cbd5e1" label={{ value: 'PC1', position: 'insideBottom' }} />
+                    <YAxis type="number" dataKey="pc2" domain={axisDomain} tick={false} stroke="#cbd5e1" label={{ value: 'PC2', position: 'left', offset: -50 }}/>
                     <ZAxis dataKey="weight" range={[25, 75]} />
                     <ReferenceLine x={0} stroke="#e2e8f0" strokeDasharray="2 2" />
                     <ReferenceLine y={0} stroke="#e2e8f0" strokeDasharray="2 2" />
